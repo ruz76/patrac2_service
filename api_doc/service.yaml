@@ -1,0 +1,508 @@
+openapi: 3.0.0
+info:
+  title: Patrac 2
+  description: |
+    This API allows to run Patrac 2 functions.
+  version: 1.0.0
+paths:
+  /create_project:
+    post:
+      summary: Creates initial project area
+      description: Creates initial project area based on coordinates of the center of the area.
+      operationId: create-project
+      parameters:
+        - name: x
+          description: X coordinate in coordinate system
+          in: query
+          required: true
+          schema:
+            type: number
+            example: 15.1
+        - name: y
+          description: Y coordinate in coordinate system
+          in: query
+          required: true
+          schema:
+            type: number
+            example: 49.8
+        - name: epsg
+          description: EPSG code of the coordinates
+          in: query
+          required: true
+          schema:
+            type: integer
+            default: 4326
+        - name: type
+          description: Type of the use (0 - testing, 1 - real)
+          in: query
+          required: true
+          schema:
+            type: integer
+            enum: [0, 1]
+            default: 0
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    description: Unique identifier created by uuid
+                    type: string
+                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status:
+                    description: Status of the project
+                    type: string
+                    enum: ["PROCESSING", "ERROR"]
+                    example: "PROCESSING"
+                required:
+                  - id
+                  - status
+                example:
+                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status: "PROCESSING"
+        "400":
+          description: The provided parameters are incorrect
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "Illegal coordinates."
+
+  /project:
+    get:
+      summary: Returns status of the project
+      description: Returns status of the project.
+      operationId: project
+      parameters:
+        - name: id
+          description: id of the project
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    description: Project id
+                    type: string
+                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status:
+                    description: Status of the project
+                    type: string
+                    enum: [ "PROCESSING", "DONE", "ERROR" ]
+                    example: "DONE"
+                required:
+                  - id
+                  - status
+                example:
+                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status: "DONE"
+        "400":
+          description: The project does not exist
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "The project does not exist."
+
+  /calculate_sectors:
+    post:
+      summary: Starts calculation of the sectors
+      description: Returns id of the calculation.
+      operationId: calculate_sectors
+      requestBody:
+        description: JSON input specified
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                project_id:
+                  description: Project id
+                  type: string
+                  example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                person_type:
+                  description: Type of person to search for
+                  type: integer
+                  minimum: 1
+                  maximum: 9
+                  default: 1
+                  example: 1
+                coordinates:
+                  description: Array of two dimensional arrays
+                  type: array
+                  maxItems: 5
+                  minItems: 1
+                  items:
+                    type: array
+                    maxItems: 2
+                    minItems: 2
+                    items:
+                      type: number
+                epsg:
+                  description: EPSG code of the coordinates
+                  type: integer
+                  default: 5514
+                percentage:
+                  description: Percentage of the probability map
+                  type: integer
+                  minimum: 10
+                  maximum: 90
+                  default: 70
+                  example: 70
+              required:
+                - project_id
+                - person_type
+                - epsg
+                - coordinates
+                - percentage
+            example:
+              project_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              person_type: 3
+              epsg: 4326
+              coordinates: [[15.153, 49.991], [15.1536, 49.991], [15.1561, 49.991]]
+              percentage: 60
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    description: Sectors calculation id
+                    type: string
+                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status:
+                    description: Status of the sectors calculation
+                    type: string
+                    enum: [ "PROCESSING", "ERROR" ]
+                    example: "PROCESSING"
+                required:
+                  - id
+                  - status
+                example:
+                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status: "PROCESSING"
+        "400":
+          description: The inputs are not correct
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "The inputs are not correct."
+
+  /sectors_calculation:
+    get:
+      summary: Returns status of the sectors calculation
+      description: Returns status of the sectors calculation.
+      operationId: sectors_calculation
+      parameters:
+        - name: id
+          description: id of the sectors calculation
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    description: Sectors calculation id
+                    type: string
+                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status:
+                    description: Status of the sectors calculation
+                    type: string
+                    enum: [ "PROCESSING", "DONE", "ERROR" ]
+                    example: "DONE"
+                  output:
+                    description: GeoJSON with sectors (if the process is DONE)
+                    type: object
+                required:
+                  - id
+                  - status
+                example:
+                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status: "DONE"
+        "400":
+          description: The sectors calculation does not exist
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "The sectors calculation does not exist."
+
+  /calculate_report:
+    post:
+      summary: Calculates report based on units
+      description: Calculates report based on units and maximum time.
+      operationId: calculate_report
+      requestBody:
+        description: JSON input specified
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                calculated_sectors_id:
+                  description: Calculated sectors id
+                  type: string
+                  example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                max_time:
+                  description: Maximum time for search
+                  type: integer
+                  minimum: 1
+                  default: 3
+                  example: 3
+                handlers:
+                  description: Number of handlers
+                  type: integer
+                  minimum: 0
+                  default: 6
+                  example: 6
+                phalanx_persons:
+                  description: Number of persons for phalanx
+                  type: integer
+                  minimum: 1
+                  default: 20
+                  example: 20
+                horse_riders:
+                  description: Number of persons on horses
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 5
+                vehicle_drivers:
+                  description: Number of persons on quad bikes or other motor vehicles
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 5
+                divers:
+                  description: Number of divers
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 1
+                drones:
+                  description: Number of drones or other flying search resources
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 1
+                other_resources:
+                  description: Number of other search resources
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 1
+              required:
+                - calculated_sectors_id
+            example:
+              calculated_sectors_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              max_time: 6
+              handlers: 10
+              phalanx_persons: 100
+              horse_riders: 2
+              vehicle_drivers: 5
+              divers: 1
+              drones: 1
+              other_resources: 0
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    description: Report id
+                    type: string
+                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  output:
+                    $ref: '#/components/schemas/Report'
+                required:
+                  - id
+                  - output
+                example:
+                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  output:
+                    surfaces: [11, 1, 0, 588, 1, 156, 35, 0, 2, 0]
+                    units_areas: [588, 190, 0, 0, 11, 2, 0]
+                    units_areas_alternatives: [0, 789, 0, 0, 0, 2, 0]
+                    units_times: [28, 55, 0, 0, 1, 3, 0]
+                    units_necessary: [29, 1086, 0, 0, 1, 1, 0]
+        "400":
+          description: The inputs are not correct
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "The inputs are not correct."
+
+  /create_sector:
+    post:
+      summary: Stores sector in project
+      description: Stores sector in project
+      operationId: create_sector
+      requestBody:
+        description: JSON input specified
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                project_id:
+                  description: Project id
+                  type: string
+                  example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                sector:
+                  description: GeoJSON with sector definition
+                  type: object
+              required:
+                - calculated_sectors_id
+                - sector
+            example:
+              project_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              sector: {}
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    description: Status of the sectors creation
+                    type: string
+                    enum: [ "DONE", "ERROR" ]
+                    example: "DONE"
+                required:
+                  - status
+                example:
+                  status: "DONE"
+        "400":
+          description: The inputs are not correct
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "The inputs are not correct."
+
+  /delete_sector:
+    post:
+      summary: Deletes sector from project
+      description: Deletes sector from project
+      operationId: delete_sector
+      requestBody:
+        description: JSON input specified
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                project_id:
+                  description: Project id
+                  type: string
+                  example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                sector_id:
+                  description: Identifier of the sector
+                  type: string
+                  example: "HA123"
+              required:
+                - project_id
+                - sector_id
+            example:
+              project_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              sector_id: "HA123"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    description: Status of the sectors deletion
+                    type: string
+                    enum: [ "DONE", "ERROR" ]
+                    example: "DONE"
+                required:
+                  - status
+                example:
+                  status: "DONE"
+        "400":
+          description: The inputs are not correct
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "The project does not exist."
+components:
+  schemas:
+    Report:
+      title: Report items
+      description: Items for building report
+      type: object
+      properties:
+        surfaces:
+          description: Areas in hectares for each surface type
+          type: array
+          items:
+            type: integer
+        units_areas:
+          description: Areas in hectares for each unit type
+          type: array
+          items:
+            type: integer
+        units_areas_alternatives:
+          description: Areas in hectares for each unit type as secondary alternative
+          type: array
+          items:
+            type: integer
+        units_time:
+          description: Time for search each unit type
+          type: array
+          items:
+            type: integer
+        units_necessary:
+          description: Number of units to search in requested time
+          type: array
+          items:
+            type: integer

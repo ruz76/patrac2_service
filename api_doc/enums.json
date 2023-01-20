@@ -1,0 +1,39 @@
+{
+  "patrac2_enumerations": [
+    {
+      "surface_types": [
+        {"1": "volný schůdný bez porostu"},
+        {"2": "volný schůdný s porostem"},
+        {"3": "volný obtížně schůdný"},
+        {"4": "porost lehce průchozí"},
+        {"5": "porost obtížně průchozí"},
+        {"6": "zastavěné území měst a obcí"},
+        {"7": "městské parky a hřiště s pohybem osob"},
+        {"8": "městské parky a hřiště bez osob"},
+        {"9": "vodní plocha"},
+        {"9": "ostatní plochy"}
+      ],
+      "unit_types": [
+        {"1": "psovod"},
+        {"2": "člověk do rojnice"},
+        {"3": "jezdec"},
+        {"4": "čtyřkolka"},
+        {"5": "dron"},
+        {"6": "potápěč"},
+        {"7": "ostatní"}
+      ],
+      "person_types": [
+        {"1": "dítě 1-3"},
+        {"2": "dítě 4-6"},
+        {"3": "dítě 7-12"},
+        {"4": "dítě 13-15"},
+        {"5": "deprese"},
+        {"6": "psychická nemoc"},
+        {"7": "retardovaný"},
+        {"8": "alzheimer"},
+        {"9": "turista"},
+        {"10": "demence"}
+      ]
+    }
+  ]
+}
