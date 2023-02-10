@@ -2,37 +2,37 @@
   "patrac2_enumerations": [
     {
       "surface_types": [
-        {"1": "volný schůdný bez porostu"},
-        {"2": "volný schůdný s porostem"},
-        {"3": "volný obtížně schůdný"},
-        {"4": "porost lehce průchozí"},
-        {"5": "porost obtížně průchozí"},
-        {"6": "zastavěné území měst a obcí"},
-        {"7": "městské parky a hřiště s pohybem osob"},
-        {"8": "městské parky a hřiště bez osob"},
-        {"9": "vodní plocha"},
-        {"9": "ostatní plochy"}
+        {"empty_easy": "volný schůdný bez porostu"},
+        {"empty_easy_with_rare_trees": "volný schůdný s porostem"},
+        {"empty_difficult": "volný obtížně schůdný"},
+        {"forest_easy": "porost lehce průchozí"},
+        {"forest_difficult": "porost obtížně průchozí"},
+        {"intravilan": "zastavěné území měst a obcí"},
+        {"parks_with_people": "městské parky a hřiště s pohybem osob"},
+        {"parks_without_people": "městské parky a hřiště bez osob"},
+        {"water_body": "vodní plocha"},
+        {"other_areas": "ostatní plochy"}
       ],
       "unit_types": [
-        {"1": "psovod"},
-        {"2": "člověk do rojnice"},
-        {"3": "jezdec"},
-        {"4": "čtyřkolka"},
-        {"5": "dron"},
-        {"6": "potápěč"},
-        {"7": "ostatní"}
+        {"handler": "psovod"},
+        {"phalanx_person": "člověk do rojnice"},
+        {"horse_rider": "jezdec"},
+        {"vehicle_driver": "čtyřkolka"},
+        {"drone": "dron"},
+        {"diver": "potápěč"},
+        {"other": "ostatní"}
       ],
       "person_types": [
-        {"1": "dítě 1-3"},
-        {"2": "dítě 4-6"},
-        {"3": "dítě 7-12"},
-        {"4": "dítě 13-15"},
-        {"5": "deprese"},
-        {"6": "psychická nemoc"},
-        {"7": "retardovaný"},
-        {"8": "alzheimer"},
-        {"9": "turista"},
-        {"10": "demence"}
+        {"child_1_3": "dítě 1-3"},
+        {"child_4_6": "dítě 4-6"},
+        {"child_7_12": "dítě 7-12"},
+        {"child_13_15": "dítě 13-15"},
+        {"despondent": "deprese"},
+        {"psychical_illness": "psychická nemoc"},
+        {"retarded": "retardovaný"},
+        {"alzheimer": "alzheimer"},
+        {"tourist": "turista"},
+        {"dementia": "demence"}
       ]
     }
   ]

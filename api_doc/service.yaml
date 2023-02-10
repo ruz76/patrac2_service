@@ -2,44 +2,63 @@ openapi: 3.0.0
 info:
   title: Patrac 2
   description: |
-    This API allows to run Patrac 2 functions.
+    Toto API umožňuje spouštět funkce pro pátrání systému Pátrač 2.
   version: 1.0.0
 paths:
-  /create_project:
+  /create_search:
     post:
-      summary: Creates initial project area
-      description: Creates initial project area based on coordinates of the center of the area.
-      operationId: create-project
+      summary: Vytvoří pátrací akci pro definované území.
+      description: |
+        Vytvoří pátrací akci pro definované území na základě souřadnic středu území. 
+        Pokud není uvedeno jinak jedná se o souřadnice zeměpisná délka, zeměpisná šířka.
+      operationId: create-search
       parameters:
         - name: x
-          description: X coordinate in coordinate system
+          description: Souřadnice X. Výchozí je zeměpisná délka.
           in: query
           required: true
           schema:
             type: number
-            example: 15.1
+            example: 15.1512
         - name: y
-          description: Y coordinate in coordinate system
+          description: Souřadnice Y. Výchozí je zeměpisná šířka.
           in: query
           required: true
           schema:
             type: number
-            example: 49.8
+            example: 49.8847
         - name: epsg
-          description: EPSG code of the coordinates
+          description: EPSG kód pro souřadnice. Výchozí je 4326 tedy WGS 84 (zeměpisná délka a šířka).
           in: query
-          required: true
+          required: false
           schema:
             type: integer
             default: 4326
         - name: type
-          description: Type of the use (0 - testing, 1 - real)
+          description: Typ pátrání (0 - testovací, 1 - reálné)
           in: query
           required: true
           schema:
             type: integer
             enum: [0, 1]
             default: 0
+        - name: timeout
+          description: Maximální doba v sekundách po kterou bude proces udržovat spojení a po jejím uplynutí vrátí status.
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 60
+        - name: id
+          description: |
+            Identifikátor pátrání. V případě, že se jedná o již vytvářené (vytvořené) pátrání.
+            Pokud není uveden, vytvoří se nové pátrání.
+            Pokud je uveden a pátrání existuje, pak se vrátí jeho status.
+            Pokud je uveden a pátrání s daným id neexistuje, pak je vytvořeno nové s uvedeným id.
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: "OK"
@@ -48,22 +67,30 @@ paths:
               schema:
                 properties:
                   id:
-                    description: Unique identifier created by uuid
+                    description: Unikátní identifikátor vytvořený pomocí uuid
                     type: string
                     example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                   status:
-                    description: Status of the project
+                    description: Status vytvoření pátrání
                     type: string
-                    enum: ["PROCESSING", "ERROR"]
+                    enum: ["PROCESSING", "ERROR", "DONE"]
                     example: "PROCESSING"
+                  progress:
+                    description: Procenta stavu vytvoření
+                    type: integer
+                    example: 75
                 required:
                   - id
                   - status
+                  - progress
                 example:
                   id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                   status: "PROCESSING"
+                  progress: 75
         "400":
-          description: The provided parameters are incorrect
+          description: |
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. jsou souřadnice mimo oblast, kde máme k dispozici data.
           content:
             application/json:
               schema:
@@ -71,79 +98,40 @@ paths:
                   errorMessage:
                     type: string
                 example:
-                  errorMessage: "Illegal coordinates."
+                  errorMessage: "Illegal inputs."
 
-  /project:
-    get:
-      summary: Returns status of the project
-      description: Returns status of the project.
-      operationId: project
-      parameters:
-        - name: id
-          description: id of the project
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-      responses:
-        "200":
-          description: "OK"
-          content:
-            application/json:
-              schema:
-                properties:
-                  id:
-                    description: Project id
-                    type: string
-                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  status:
-                    description: Status of the project
-                    type: string
-                    enum: [ "PROCESSING", "DONE", "ERROR" ]
-                    example: "DONE"
-                required:
-                  - id
-                  - status
-                example:
-                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  status: "DONE"
-        "400":
-          description: The project does not exist
-          content:
-            application/json:
-              schema:
-                properties:
-                  errorMessage:
-                    type: string
-                example:
-                  errorMessage: "The project does not exist."
 
   /calculate_sectors:
     post:
-      summary: Starts calculation of the sectors
-      description: Returns id of the calculation.
+      summary: Spustí výpočet získání pátracích sektorů.
+      description: |
+        Spustí výpočet získání pátracích sektorů.
+        Vrátí identifikátor výpočtu, status a procenta průběhu.
       operationId: calculate_sectors
       requestBody:
-        description: JSON input specified
+        description: Vstup je definován jako struktura JSON.
         required: true
         content:
           application/json:
             schema:
               properties:
-                project_id:
-                  description: Project id
+                search_id:
+                  description: Identifikátor pátrání
                   type: string
                   example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                 person_type:
-                  description: Type of person to search for
-                  type: integer
-                  minimum: 1
-                  maximum: 9
-                  default: 1
-                  example: 1
+                  description: |
+                    Typ osoby po které se pátrá.
+                    Vysvětlení výčtu je v souboru enums.json.
+                  type: string
+                  enum: [ "child_1_3", "child_4_6", "child_7_12", "child_13_15", "despondent", "psychical_illness", "retarded", "alzheimer", "tourist", "dementia"  ]
+                  default: "child_1_3"
+                  example: "child_1_3"
                 coordinates:
-                  description: Array of two dimensional arrays
+                  description: |
+                    Pole (list) dvoudimenzionálních polí se souřadnicemi.
+                    Souřadnice představují poslední místa spatření osoby.
+                    Ukázka v příkladu.
                   type: array
                   maxItems: 5
                   minItems: 1
@@ -154,26 +142,37 @@ paths:
                     items:
                       type: number
                 epsg:
-                  description: EPSG code of the coordinates
+                  description: EPSG kód pro souřadnice. Výchozí je 4326 tedy WGS 84 (zeměpisná délka a šířka).
                   type: integer
-                  default: 5514
+                  default: 4326
                 percentage:
-                  description: Percentage of the probability map
+                  description: Procento pravděpodobností mapy pro výběr sektorů.
                   type: integer
                   minimum: 10
-                  maximum: 90
+                  maximum: 95
                   default: 70
                   example: 70
+                timeout:
+                  description: Maximální doba v sekundách po kterou bude proces udržovat spojení a po jejím uplynutí vrátí status.
+                  type: integer
+                  default: 60
+                  example: 60
+                id:
+                  description: |
+                    Identifikátor výpočtu sektorů. V případě, že se jedná o již probíhající výpočet.
+                    Pokud není uveden, vytvoří se nový výpočet sektorů.
+                    Pokud je uveden a výpočet existuje, pak se vrátí jeho status.
+                    Pokud je uveden a výpočet s daným id neexistuje, pak je vytvořen nový výpočet s uvedeným id.
+                  type: string
+                  default: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
               required:
-                - project_id
+                - search_id
                 - person_type
-                - epsg
                 - coordinates
                 - percentage
             example:
-              project_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-              person_type: 3
-              epsg: 4326
+              search_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              person_type: "child_7_12"
               coordinates: [[15.153, 49.991], [15.1536, 49.991], [15.1561, 49.991]]
               percentage: 60
       responses:
@@ -184,71 +183,37 @@ paths:
               schema:
                 properties:
                   id:
-                    description: Sectors calculation id
+                    description: Identifikátor výpočtu získání sektorů.
                     type: string
-                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                    example: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                   status:
-                    description: Status of the sectors calculation
+                    description: Stav výpočtu získání sektorů.
                     type: string
-                    enum: [ "PROCESSING", "ERROR" ]
+                    enum: [ "PROCESSING", "ERROR", "DONE" ]
                     example: "PROCESSING"
-                required:
-                  - id
-                  - status
-                example:
-                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  status: "PROCESSING"
-        "400":
-          description: The inputs are not correct
-          content:
-            application/json:
-              schema:
-                properties:
-                  errorMessage:
-                    type: string
-                example:
-                  errorMessage: "The inputs are not correct."
-
-  /sectors_calculation:
-    get:
-      summary: Returns status of the sectors calculation
-      description: Returns status of the sectors calculation.
-      operationId: sectors_calculation
-      parameters:
-        - name: id
-          description: id of the sectors calculation
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-      responses:
-        "200":
-          description: "OK"
-          content:
-            application/json:
-              schema:
-                properties:
-                  id:
-                    description: Sectors calculation id
-                    type: string
-                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  status:
-                    description: Status of the sectors calculation
-                    type: string
-                    enum: [ "PROCESSING", "DONE", "ERROR" ]
-                    example: "DONE"
-                  output:
-                    description: GeoJSON with sectors (if the process is DONE)
+                  progress:
+                    description: Procenta stavu vytvoření.
+                    type: integer
+                    example: 60
+                  sectors:
+                    description: | 
+                      GeoJSON se získanými sektory.
+                      Je vrácen v případě, že status je DONE.
+                      Ukázka je v sectors_sample.geojson
                     type: object
                 required:
                   - id
                   - status
+                  - progress
                 example:
-                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  status: "DONE"
+                  id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status: "PROCESSING"
+                  progress: 60
         "400":
-          description: The sectors calculation does not exist
+          description: |
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. jsou souřadnice mimo oblast, kde máme k dispozici data.
+            Pozn. V případě, že budeme potřebovat lépe strukturovat chybu, včetně více variant, můžeme dále rozvést.
           content:
             application/json:
               schema:
@@ -256,68 +221,71 @@ paths:
                   errorMessage:
                     type: string
                 example:
-                  errorMessage: "The sectors calculation does not exist."
+                  errorMessage: "Illegal inputs."
 
   /calculate_report:
     post:
-      summary: Calculates report based on units
-      description: Calculates report based on units and maximum time.
+      summary: Vypočítá report na základě vstupních údajů.
+      description: |
+        Vypočítá report na základě vstupních údajů.
+        Určí také potřebné počty jednotek na základě maximálního času pro pátrání.
+        K dispozici není timeout, počítáme, že výpočet vždy doběhne v řádu sekund.
       operationId: calculate_report
       requestBody:
-        description: JSON input specified
+        description: Vstup v podobě JSON.
         required: true
         content:
           application/json:
             schema:
               properties:
                 calculated_sectors_id:
-                  description: Calculated sectors id
+                  description: Identifikátor výpočtu získání sektorů
                   type: string
-                  example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  example: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                 max_time:
-                  description: Maximum time for search
+                  description: Maximální doba pro pátrání v sekundách.
                   type: integer
-                  minimum: 1
-                  default: 3
-                  example: 3
+                  minimum: 3600
+                  default: 10800
+                  example: 10800
                 handlers:
-                  description: Number of handlers
+                  description: Počet psovodů.
                   type: integer
                   minimum: 0
                   default: 6
                   example: 6
                 phalanx_persons:
-                  description: Number of persons for phalanx
+                  description: Počet osob do rojnice.
                   type: integer
                   minimum: 1
                   default: 20
                   example: 20
                 horse_riders:
-                  description: Number of persons on horses
+                  description: Počet osob na koních.
                   type: integer
                   minimum: 0
                   default: 0
                   example: 5
                 vehicle_drivers:
-                  description: Number of persons on quad bikes or other motor vehicles
+                  description: Počet osob na čtyřkolkách a jiných motorových prostředcích.
                   type: integer
                   minimum: 0
                   default: 0
                   example: 5
-                divers:
-                  description: Number of divers
+                drones:
+                  description: Počet dronů nebo jiných leteckých prostředků.
                   type: integer
                   minimum: 0
                   default: 0
                   example: 1
-                drones:
-                  description: Number of drones or other flying search resources
+                divers:
+                  description: Počet potápěčů.
                   type: integer
                   minimum: 0
                   default: 0
                   example: 1
                 other_resources:
-                  description: Number of other search resources
+                  description: Počet jiných pátracích prostředků.
                   type: integer
                   minimum: 0
                   default: 0
@@ -325,7 +293,7 @@ paths:
               required:
                 - calculated_sectors_id
             example:
-              calculated_sectors_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              calculated_sectors_id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
               max_time: 6
               handlers: 10
               phalanx_persons: 100
@@ -342,16 +310,16 @@ paths:
               schema:
                 properties:
                   id:
-                    description: Report id
+                    description: Identifikátor výpočtu sektorů
                     type: string
-                    example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  output:
+                    example: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  report:
                     $ref: '#/components/schemas/Report'
                 required:
                   - id
-                  - output
+                  - report
                 example:
-                  id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                   output:
                     surfaces: [11, 1, 0, 588, 1, 156, 35, 0, 2, 0]
                     units_areas: [588, 190, 0, 0, 11, 2, 0]
@@ -359,7 +327,10 @@ paths:
                     units_times: [28, 55, 0, 0, 1, 3, 0]
                     units_necessary: [29, 1086, 0, 0, 1, 1, 0]
         "400":
-          description: The inputs are not correct
+          description: | 
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. identifikátor výpočtu sektorů neexistuje.
+            Pozn. V případě, že budeme potřebovat lépe strukturovat chybu, včetně více variant, můžeme dále rozvést.
           content:
             application/json:
               schema:
@@ -367,33 +338,35 @@ paths:
                   errorMessage:
                     type: string
                 example:
-                  errorMessage: "The inputs are not correct."
+                  errorMessage: "Illegal inputs."
 
   /create_sector:
     post:
-      summary: Stores sector in project
-      description: Stores sector in project
+      summary: Uloží sektor do existujícího pátrání.
+      description: |
+        Uloží sektor do existujícího pátrání.
+        Pozn. Aktualizaci sektoru nemáme definovánu. Budeme řešit jako smazání a opětovné vytvoření.
       operationId: create_sector
       requestBody:
-        description: JSON input specified
+        description: Vstup v podobě JSON
         required: true
         content:
           application/json:
             schema:
               properties:
-                project_id:
-                  description: Project id
+                search_id:
+                  description: Identifikátor pátrání
                   type: string
                   example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                 sector:
-                  description: GeoJSON with sector definition
+                  description: Feature ze struktury GeoJSON definující sektor
                   type: object
               required:
                 - calculated_sectors_id
                 - sector
             example:
-              project_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-              sector: {}
+              search_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              sector: { "type": "Feature", "properties": { "id": "A1KP451", "label": "KP631" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 15.995875075340464, 50.342878796586206 ], [ 15.99586008303716, 50.342937802727754 ], [ 15.995854179503086, 50.342992788014527 ], [ 15.995848824655456, 50.343037125621777 ], [ 15.995837905124617, 50.343081655536231 ], [ 15.99581186352791, 50.343147143158795 ], [ 15.995767718537373, 50.343248516991366 ], [ 15.99568909220744, 50.34338227763169 ], [ 15.995632568913729, 50.343466855980317 ], [ 15.995576707455736, 50.343530667668176 ], [ 15.995465058820079, 50.343635308530473 ], [ 15.995223652374227, 50.343827494776079 ], [ 15.995084983000943, 50.343950850056906 ], [ 15.994860866649573, 50.344159165063381 ], [ 15.994634931587326, 50.344342455831615 ], [ 15.994468026074578, 50.344469411058171 ], [ 15.994404558892514, 50.344515913114613 ], [ 15.994342493527643, 50.344561704933156 ], [ 15.994246284967993, 50.344622604039614 ], [ 15.994186799671276, 50.344654197664504 ], [ 15.994130118189329, 50.344684370857991 ], [ 15.994088260916438, 50.34470768292725 ], [ 15.994040549306966, 50.34472974475166 ], [ 15.993994943970769, 50.344746442567128 ], [ 15.993938450764512, 50.344768574833871 ], [ 15.993869083731425, 50.344792283067783 ], [ 15.993746819531506, 50.344823005389621 ], [ 15.993664851250694, 50.344845232640125 ], [ 15.99364814871026, 50.34485589082886 ], [ 15.993615133139048, 50.344905645434714 ], [ 15.99359073032849, 50.344931668291657 ], [ 15.993560451529321, 50.344954303380852 ], [ 15.993515945591311, 50.344978956722777 ], [ 15.993457429654326, 50.34501143672955 ], [ 15.99341818711307, 50.345041369006758 ], [ 15.993329984730568, 50.345121235741438 ], [ 15.993209434514005, 50.345247567061058 ], [ 15.993154247117385, 50.345290521666968 ], [ 15.993042406613636, 50.345410170294379 ], [ 15.992962572269306, 50.345493012786001 ], [ 15.992863731066386, 50.345560593388782 ], [ 15.992729234016078, 50.345626696528207 ], [ 15.992285225673079, 50.345839366069434 ], [ 15.991777142216659, 50.346126727291249 ], [ 15.991097326134259, 50.346527012823948 ], [ 15.990783259311746, 50.346698578237444 ], [ 15.990530636459722, 50.3468192382106 ], [ 15.990254812558238, 50.346929029417346 ], [ 15.990088351393631, 50.346992750287733 ], [ 15.99003250630245, 50.347012847652735 ], [ 15.990008971905958, 50.347027963670428 ], [ 15.990002624033151, 50.347040160781468 ], [ 15.989994259919724, 50.347067615273261 ], [ 15.989987418815081, 50.347130594881051 ], [ 15.990018932419863, 50.347173758742656 ], [ 15.990044611155048, 50.347231665779958 ], [ 15.990170864253114, 50.347224249910752 ], [ 15.990214274632953, 50.347221986461115 ], [ 15.991041240909846, 50.34717886789791 ], [ 15.991870275708555, 50.347109893922003 ], [ 15.992020959186966, 50.347094592594175 ], [ 15.992566754933209, 50.347039501112477 ], [ 15.992682864053181, 50.347038006791543 ], [ 15.992752640702459, 50.347012066865823 ], [ 15.993243435560526, 50.346808940919225 ], [ 15.993749652177241, 50.346599847336996 ], [ 15.994514183034761, 50.346273621679899 ], [ 15.995229170199915, 50.345982042680475 ], [ 15.995852098392509, 50.345748555802771 ], [ 15.996227277489531, 50.345595372680776 ], [ 15.996459127209414, 50.345475735848375 ], [ 15.996593696851997, 50.345391216778417 ], [ 15.996761576827669, 50.345254755987405 ], [ 15.99704346414455, 50.345008217072973 ], [ 15.997230181140711, 50.344829634026489 ], [ 15.997579082320549, 50.3445132875421 ], [ 15.997776456720269, 50.344369906175011 ], [ 15.997937729547429, 50.34428970742352 ], [ 15.997873474722324, 50.34423678866365 ], [ 15.997697096990102, 50.344088962183037 ], [ 15.997484833746967, 50.343928247810176 ], [ 15.997257590002578, 50.343725365985534 ], [ 15.996922046778904, 50.343454042057367 ], [ 15.996729949418439, 50.343306908457386 ], [ 15.996668402913016, 50.343188810414901 ], [ 15.996573804398549, 50.342961974553248 ], [ 15.996488623163067, 50.342745505022229 ], [ 15.996434763638138, 50.342651735925756 ], [ 15.996028872088196, 50.342807357090706 ], [ 15.995875075340464, 50.342878796586206 ] ] ] ] } }
       responses:
         "200":
           description: "OK"
@@ -402,7 +375,7 @@ paths:
               schema:
                 properties:
                   status:
-                    description: Status of the sectors creation
+                    description: Stav vytvoření sektoru
                     type: string
                     enum: [ "DONE", "ERROR" ]
                     example: "DONE"
@@ -411,7 +384,9 @@ paths:
                 example:
                   status: "DONE"
         "400":
-          description: The inputs are not correct
+          description: | 
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. identifikátor pátrání neexistuje.
           content:
             application/json:
               schema:
@@ -419,34 +394,34 @@ paths:
                   errorMessage:
                     type: string
                 example:
-                  errorMessage: "The inputs are not correct."
+                  errorMessage: "Illegal inputs."
 
   /delete_sector:
     post:
-      summary: Deletes sector from project
-      description: Deletes sector from project
+      summary: Smaže sektor z pátrání.
+      description: Smaže sektor z pátrání.
       operationId: delete_sector
       requestBody:
-        description: JSON input specified
+        description: Vstup v podbě JSON
         required: true
         content:
           application/json:
             schema:
               properties:
-                project_id:
-                  description: Project id
+                search_id:
+                  description: Identifikátor pátrání
                   type: string
                   example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                 sector_id:
-                  description: Identifier of the sector
+                  description: Identifikátor sektoru
                   type: string
-                  example: "HA123"
+                  example: "A1KP631"
               required:
-                - project_id
+                - search_id
                 - sector_id
             example:
-              project_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-              sector_id: "HA123"
+              search_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              sector_id: "A1HA123"
       responses:
         "200":
           description: "OK"
@@ -455,7 +430,7 @@ paths:
               schema:
                 properties:
                   status:
-                    description: Status of the sectors deletion
+                    description: Stav smazání sektoru
                     type: string
                     enum: [ "DONE", "ERROR" ]
                     example: "DONE"
@@ -464,7 +439,9 @@ paths:
                 example:
                   status: "DONE"
         "400":
-          description: The inputs are not correct
+          description: |
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. identifikátor pátrání neexistuje.
           content:
             application/json:
               schema:
@@ -473,36 +450,40 @@ paths:
                   errorMessage:
                     type: string
                 example:
-                  errorMessage: "The project does not exist."
+                  errorMessage: "Illegal inputs."
 components:
   schemas:
     Report:
-      title: Report items
-      description: Items for building report
+      title: Prvky reportu.
+      description: Prvky pro sestavení reportu.
       type: object
       properties:
         surfaces:
-          description: Areas in hectares for each surface type
+          description: | 
+            Plochy v metrech čtverečních pro každý typ povrchu.
+            Popis typů v rámci enums.json.
           type: array
           items:
             type: integer
         units_areas:
-          description: Areas in hectares for each unit type
+          description: | 
+            Plochy v metrech čtverečních pro každý typ jednotky.
+            Popis typů v rámci enums.json.
           type: array
           items:
             type: integer
         units_areas_alternatives:
-          description: Areas in hectares for each unit type as secondary alternative
+          description: Plochy v metrech čtverečních pro každý typ jednotky jako alternativní řešení.
           type: array
           items:
             type: integer
         units_time:
-          description: Time for search each unit type
+          description: Čas pátrání pro každý typ jednotky.
           type: array
           items:
             type: integer
         units_necessary:
-          description: Number of units to search in requested time
+          description: Počty jednotek, které jsou potřebné pro propátrání ve stanoveném čase.
           type: array
           items:
             type: integer
