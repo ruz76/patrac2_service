@@ -10,7 +10,7 @@ from shapely.geometry import Point
 
 app = Flask(__name__)
 dataPath = "/data/patracdata"
-serviceDataPath = "/data/patracdata/service"
+serviceDataPath = dataPath + "/service"
 
 def get_region(x, y):
     with fiona.open(dataPath + '/cr/vusc.shp', 'r', encoding='utf-8') as kraje:
