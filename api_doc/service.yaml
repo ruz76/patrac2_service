@@ -4,6 +4,9 @@ info:
   description: |
     Toto API umožňuje spouštět funkce pro pátrání systému Pátrač 2.
   version: 1.0.0
+servers:
+- url: "http://127.0.0.1:5000"
+  description: "Lokální testovací"
 paths:
   /create_search:
     post:
