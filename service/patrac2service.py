@@ -34,6 +34,38 @@ def get_log_progress(id):
     else:
         return "-1"
 
+def get_ok_response(id, type):
+    progress = int(get_log_progress(id))
+    status = 'PROCESSING'
+    sectors = None
+    if progress == 100:
+        status = 'DONE'
+        if type == 'calculate_sectors':
+            sectors = get_sectors_to_return(id)
+
+    ret = {
+        "id": id,
+        "status": status,
+        "progress": progress
+    }
+
+    if sectors is not None:
+        ret["sectors"] = sectors
+
+    resp = Response(response=json.dumps(ret),
+                    status=200,
+                    mimetype="application/json")
+    return resp
+
+def get_400_response(message):
+    ret = {
+        "errorMessage": message
+    }
+    resp = Response(response=json.dumps(ret),
+                    status=400,
+                    mimetype="application/json")
+    return resp
+
 @app.route("/")
 def hello():
     return "Vítejte. Toto je Patrac 2 service!. Dokumentaci najdete na https://github.com/ruz76/patrac2_service/tree/main/api_doc"
@@ -67,27 +99,11 @@ def create_search():
         if region is not None:
             create_project_grass(id, xmin, ymin, xmax, ymax, region)
         else:
-            # TODO return ERROR
-            placeholder = ''
+            return get_400_response('Illegal inputs. Coordinates are out of any region.')
 
     time.sleep(timeout)
 
-    progress = int(get_log_progress(id))
-    status = 'PROCESSING'
-    if progress == 100:
-        status = 'DONE'
-
-    ret = {
-        "id": id,
-        "status": status,
-        "progress": progress
-    }
-
-    resp = Response(response=json.dumps(ret),
-                    status=200,
-                    mimetype="application/json")
-    return resp
-
+    return get_ok_response(id, "create_search")
 
 @app.route("/calculate_sectors", methods=['POST'])
 def calculate_sectors():
@@ -118,31 +134,11 @@ def calculate_sectors():
                     coords.append([xy[0], xy[1]])
             get_sectors_grass(id, content['search_id'], coords, content['person_type'], content['percentage'])
         else:
-            # TODO return error
-            placeholder = ''
+            return get_400_response('Illegal inputs.')
 
     time.sleep(timeout)
 
-    progress = int(get_log_progress(id))
-    status = 'PROCESSING'
-    sectors = None
-    if progress == 100:
-        status = 'DONE'
-        sectors = get_sectors_to_return(id)
-
-    ret = {
-        "id": id,
-        "status": status,
-        "progress": progress
-    }
-
-    if sectors is not None:
-        ret["sectors"] = sectors
-
-    resp = Response(response=json.dumps(ret),
-                    status=200,
-                    mimetype="application/json")
-    return resp
+    return get_ok_response(id, 'calculate_sectors')
 
 
 if __name__ == "__main__":

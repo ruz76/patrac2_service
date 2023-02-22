@@ -13,3 +13,5 @@ COPY service /home/patrac/app
 RUN chown -R patrac /home/patrac/app
 
 EXPOSE 5000
+
+CMD bash /home/patrac/app/run.sh
