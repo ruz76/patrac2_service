@@ -11,6 +11,7 @@ from shapely.geometry import Point
 app = Flask(__name__)
 dataPath = "/data/patracdata"
 serviceDataPath = dataPath + "/service"
+settingsPath = "qgis/qgis_patrac_settings"
 
 def get_region(x, y):
     with fiona.open(dataPath + '/cr/vusc.shp', 'r', encoding='utf-8') as kraje:
@@ -139,6 +140,54 @@ def calculate_sectors():
     time.sleep(timeout)
 
     return get_ok_response(id, 'calculate_sectors')
+
+@app.route("/calculate_report", methods=['POST'])
+def calculate_report():
+    content = request.get_json(silent=True)
+
+    if 'calculated_sectors_id' in content:
+        with open(settingsPath + "/grass/maxtime.txt", "w") as m:
+            if 'max_time' in content:
+                m.write(str(int(math.ceil(content['max_time'] / 3600))))
+            else:
+                m.write("3")
+        with open(settingsPath + "/grass/units.txt", "w") as u:
+            if 'handlers' in content:
+                u.write(str(content['handlers']) + ";\n")
+            else:
+                u.write("6;\n")
+            if 'phalanx_persons' in content:
+                u.write(str(content['phalanx_persons']) + ";\n")
+            else:
+                u.write("20;\n")
+            if 'horse_riders' in content:
+                u.write(str(content['horse_riders']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'vehicle_drivers' in content:
+                u.write(str(content['vehicle_drivers']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'drones' in content:
+                u.write(str(content['drones']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'drones' in content:
+                u.write(str(content['drones']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'other_resources' in content:
+                u.write(str(content['other_resources']) + ";\n")
+            else:
+                u.write("0;\n")
+
+        report = get_report_grass(content['calculated_sectors_id'])
+        resp = Response(response=json.dumps(report),
+                    status=200,
+                    mimetype="application/json")
+        return resp
+    else:
+        return get_400_response('Illegal inputs.')
 
 
 if __name__ == "__main__":

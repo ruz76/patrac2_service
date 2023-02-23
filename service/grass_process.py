@@ -6,7 +6,7 @@ import json
 pluginPath = "qgis/qgis_patrac"
 dataPath = "/data/patracdata/service/data"
 
-def copyTemplate(NEW_PROJECT_PATH, NAMESAFE):
+def copyTemplate(NEW_PROJECT_PATH, NAMESAFE, region):
     TEMPLATES_PATH = pluginPath + "/templates"
     if not os.path.isdir(NEW_PROJECT_PATH):
         os.mkdir(NEW_PROJECT_PATH)
@@ -22,6 +22,8 @@ def copyTemplate(NEW_PROJECT_PATH, NAMESAFE):
         os.mkdir(NEW_PROJECT_PATH + "/pracovni")
         for file in glob(TEMPLATES_PATH + '/projekt/pracovni/*'):
             copy(file, NEW_PROJECT_PATH + "/pracovni/")
+        with open(NEW_PROJECT_PATH + "/pracovni/region.txt", "w") as r:
+            r.write(region)
         copy(NEW_PROJECT_PATH + "/pracovni/sektory_group_selected.dbf",
              NEW_PROJECT_PATH + "/pracovni/sektory_group.dbf")
         copy(NEW_PROJECT_PATH + "/pracovni/sektory_group_selected.shp",
@@ -63,7 +65,7 @@ def create_project_grass(id, xmin, ymin, xmax, ymax, region):
     # TODO select right region
     KRAJ_DATA_PATH = "/data/patracdata/kraje/" + region
     NEW_PROJECT_PATH = dataPath + "/projekty/" + id
-    copyTemplate(NEW_PROJECT_PATH, id)
+    copyTemplate(NEW_PROJECT_PATH, id, region)
     subprocess.Popen(('bash', pluginPath + "/grass/run_export.sh", KRAJ_DATA_PATH, pluginPath,
                           str(xmin), str(ymin), str(xmax), str(ymax), NEW_PROJECT_PATH, id))
 
@@ -74,4 +76,10 @@ def get_sectors_grass(id, search_id, coordinates, person_type, percentage):
 
 def get_sectors_to_return(id):
     with open(dataPath + "/" + id + "_sectors.geojson") as s:
+        return json.load(s)
+
+def get_report_grass(id):
+    p = subprocess.Popen(('bash', pluginPath + "/grass/run_report_export.sh", id, pluginPath))
+    p.wait()
+    with open(dataPath + "/" + id + "_report.json") as s:
         return json.load(s)
