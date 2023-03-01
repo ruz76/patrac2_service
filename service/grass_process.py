@@ -83,3 +83,11 @@ def get_report_grass(id):
     p.wait()
     with open(dataPath + "/" + id + "_report.json") as s:
         return json.load(s)
+
+def create_sector_grass(search_id):
+    p = subprocess.Popen(('bash', pluginPath + "/grass/run_create_sector.sh", dataPath + "/projekty/" + search_id, pluginPath, search_id))
+    p.wait()
+
+def delete_sector_grass(sector_id, search_id):
+    p = subprocess.Popen(('bash', pluginPath + "/grass/run_delete_sector.sh", dataPath + "/projekty/" + search_id, pluginPath, sector_id, search_id))
+    p.wait()

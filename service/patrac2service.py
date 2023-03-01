@@ -18,7 +18,7 @@ def get_region(x, y):
         for feature in kraje:
             poly = shape(feature['geometry'])
             point = Point(x, y)
-            if poly.contains(point) or point.touches(poly):
+            if (poly.contains(point) or point.touches(poly)) and os.path.exists(dataPath + '/kraje/' + feature['properties']['region'] + '/vektor/ZABAGED/line_x/merged_polygons_groupped.shp'):
                 return feature['properties']['region']
     return None
 
@@ -43,12 +43,16 @@ def get_ok_response(id, type):
         status = 'DONE'
         if type == 'calculate_sectors':
             sectors = get_sectors_to_return(id)
+    if progress == -1:
+        status = 'ERROR'
 
     ret = {
-        "id": id,
         "status": status,
-        "progress": progress
     }
+
+    if type not in ['delete_sector', 'create_sector']:
+        ret["id"] = id
+        ret["progress"] = progress
 
     if sectors is not None:
         ret["sectors"] = sectors
@@ -66,6 +70,12 @@ def get_400_response(message):
                     status=400,
                     mimetype="application/json")
     return resp
+
+def search_exists(id):
+    if os.path.exists(serviceDataPath + "/data/projekty/" + id):
+        return True
+    else:
+        return False
 
 @app.route("/")
 def hello():
@@ -145,7 +155,7 @@ def calculate_sectors():
 def calculate_report():
     content = request.get_json(silent=True)
 
-    if 'calculated_sectors_id' in content:
+    if 'calculated_sectors_id' in content and os.path.exists(serviceDataPath + "/data/" + content['calculated_sectors_id'] + "_sectors.geojson"):
         with open(settingsPath + "/grass/maxtime.txt", "w") as m:
             if 'max_time' in content:
                 m.write(str(int(math.ceil(content['max_time'] / 3600))))
@@ -185,6 +195,44 @@ def calculate_report():
         resp = Response(response=json.dumps(report),
                     status=200,
                     mimetype="application/json")
+        return resp
+    else:
+        return get_400_response('Illegal inputs.')
+
+@app.route("/create_sector", methods=['POST'])
+def create_sector():
+    # TODO do not allow when previous edit or delete is not finished
+    content = request.get_json(silent=True)
+
+    if 'search_id' in content and 'sector' in content and search_exists(content['search_id']):
+        collection = {
+            "type": "FeatureCollection",
+            "name": "sektory_group_selected",
+            "crs": {
+                "type": "name",
+                "properties": {
+                    "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+                }
+            },
+            "features": [content['sector']]
+        }
+        with open(serviceDataPath + "/data/" + content['search_id'] + "_create.geojson", "w") as out:
+            json.dump(collection, out)
+        create_sector_grass(content['search_id'])
+        resp = get_ok_response(content['search_id'], 'create_sector')
+        return resp
+    else:
+        return get_400_response('Illegal inputs.')
+
+@app.route("/delete_sector", methods=['POST'])
+def delete_sector():
+    # TODO do not allow when previous edit or delete is not finished
+    content = request.get_json(silent=True)
+
+    if 'search_id' in content and 'sector_id' in content and search_exists(content['search_id']):
+
+        delete_sector_grass(content['sector_id'], content['search_id'])
+        resp = get_ok_response(content['search_id'], 'delete_sector')
         return resp
     else:
         return get_400_response('Illegal inputs.')

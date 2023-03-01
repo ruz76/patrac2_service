@@ -1,3 +1,1 @@
-su patrac
-cd /home/patrac/app
-python patrac2service.py
+su patrac -c 'bash /home/patrac/app/run_service_dev.sh'

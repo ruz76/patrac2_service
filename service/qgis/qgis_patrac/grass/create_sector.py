@@ -4,7 +4,6 @@ import os
 import sys
 import subprocess
 from grass_config import *
-import time
 
 # DATA
 # define GRASS DATABASE
@@ -33,7 +32,6 @@ if sys.platform.startswith('linux'):
         print("ERROR: Cannot find GRASS GIS 7 start script (%s)" % startcmd)
         sys.exit(-1)
     # print(out)
-    # gisbase = out.strip('\n\r')
     gisbase = out.decode('utf-8').strip('\n\r')
 elif sys.platform.startswith('win'):
     grass7bin = grass7bin_win
@@ -66,22 +64,21 @@ import grass.script.setup as gsetup
 # launch session
 gsetup.init(gisbase,
             gisdb, location, mapset)
- 
-#gscript.message('Current GRASS GIS 7 environment:')
-#print gscript.gisenv()
 
-MIN=str(sys.argv[3])
-MAX=str(sys.argv[4])
-print("MIN/MAX:" +  MIN + " " + MAX)
+logsPath = "/data/patracdata/service/logs"
 
-# print(gscript.read_command('v.in.ogr', output='sectors_group_modified', input=DATAPATH +'/pracovni', layer='sektory_group', snap=0.01, overwrite=True, flags="o"))
-print(gscript.read_command('r.mapcalc', expression='distances_costed_cum_selected = if(distances_costed_cum<='+MIN+'||distances_costed_cum>='+MAX+', null(), 1)', overwrite=True))
-print(gscript.read_command('r.to.vect', input='distances_costed_cum_selected',  output='distances_costed_cum_selected', type='area', overwrite=True))
-print(gscript.read_command('v.select', ainput='sectors_group', binput='distances_costed_cum_selected', output='sektory_group_selected', overwrite=True))
-#Linux
-#print gscript.read_command('v.out.ogr', input='sektory_group_selected', output=DATAPATH +'/pracovni/', overwrite=True)
-#Windows
-print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sektory_group_selected', output=DATAPATH +'/pracovni/sektory_group_selected.shp', overwrite=True))
-print(gscript.read_command('v.out.ogr', format='CSV', input='sektory_group_selected', output=DATAPATH +'/pracovni/sektory_group_selected.csv', overwrite=True))
+ID=str(sys.argv[3])
+PLUGIN_PATH=str(sys.argv[2])
 
-# time.sleep(30)
+with open(logsPath + "/" + ID + ".log", "a") as log:
+    log.write("\nCREATE OF SECTOR IN SEARCH " + ID + " STARTED\n10\n")
+
+try:
+    print(gscript.read_command('v.in.ogr', output='sectors_group', input=DATAPATH +'/pracovni/', snap=0.01, layer='sektory_group', overwrite=True, flags="o"))
+except Exception as e:
+    with open(logsPath + "/" + ID + ".log", "a") as log:
+        log.write(str(e) + "\nERROR IN CREATE OF SECTOR IN SEARCH " + ID + "\n-1")
+        exit(1)
+
+with open(logsPath + "/" + ID + ".log", "a") as log:
+    log.write("CREATE OF SECTOR IN SEARCH " + ID + " FINISHED\n100\n")
