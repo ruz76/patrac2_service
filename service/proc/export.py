@@ -4,24 +4,7 @@ import sys
 import subprocess
 from .grass_config import *
 
-def init_grass():
-
-
-def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
-    # DATA
-    # define GRASS DATABASE
-    # add your path to grassdata (GRASS GIS database) directory
-    DATAPATH=datapath
-    ID=id
-    gisdb = DATAPATH + "/grassdata"
-    # the following path is the default path on MS Windows
-    # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
-
-    # specify (existing) location and mapset
-    location = "jtsk"
-    mapset   = "PERMANENT"
-
-
+def init_grass(gisdb, location, mapset):
     ########### SOFTWARE
     if sys.platform.startswith('linux'):
         # we assume that the GRASS GIS start script is available and in the PATH
@@ -64,7 +47,6 @@ def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
     os.environ['GISDBASE'] = gisdb
 
     # import GRASS Python bindings (see also pygrass)
-    import grass.script as gscript
     import grass.script.setup as gsetup
     #from grass.pygrass.modules.shortcuts import raster as r
 
@@ -72,6 +54,23 @@ def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
     # launch session
     gsetup.init(gisbase,
                 gisdb, location, mapset)
+
+def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
+    # DATA
+    # define GRASS DATABASE
+    # add your path to grassdata (GRASS GIS database) directory
+    DATAPATH=datapath
+    ID=id
+    gisdb = DATAPATH + "/grassdata"
+    # the following path is the default path on MS Windows
+    # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
+
+    # specify (existing) location and mapset
+    location = "jtsk"
+    mapset   = "PERMANENT"
+
+    init_grass(gisdb, location, mapset)
+    import grass.script as gscript
 
     logsPath = "/data/patracdata/service/logs"
 
