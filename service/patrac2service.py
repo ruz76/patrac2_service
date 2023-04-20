@@ -1,6 +1,7 @@
 from flask import Flask, request, Response
 import json, uuid
 from grass_process import *
+from config import *
 import time
 import os
 import pyproj
@@ -9,9 +10,6 @@ from shapely.geometry import shape
 from shapely.geometry import Point
 
 app = Flask(__name__)
-dataPath = "/data/patracdata"
-serviceDataPath = dataPath + "/service"
-settingsPath = "qgis/qgis_patrac_settings"
 
 def get_region(x, y):
     with fiona.open(dataPath + '/cr/vusc.shp', 'r', encoding='utf-8') as kraje:
@@ -28,8 +26,8 @@ def transform_coordinates_to_5514(x, y, from_code):
     return pyproj.transform(from_proj, to_proj, x, y)
 
 def get_log_progress(id):
-    if os.path.exists(serviceDataPath + "/logs/" + id + ".log"):
-        with open(serviceDataPath + "/logs/" + id + ".log", "r") as log:
+    if os.path.exists(serviceStoragePath + "/logs/" + id + ".log"):
+        with open(serviceStoragePath + "/logs/" + id + ".log", "r") as log:
             lines = log.readlines()
             return lines[len(lines) - 1]
     else:
@@ -72,7 +70,7 @@ def get_400_response(message):
     return resp
 
 def search_exists(id):
-    if os.path.exists(serviceDataPath + "/data/projekty/" + id):
+    if os.path.exists(serviceStoragePath + "/data/projekty/" + id):
         return True
     else:
         return False
@@ -155,7 +153,7 @@ def calculate_sectors():
 def calculate_report():
     content = request.get_json(silent=True)
 
-    if 'calculated_sectors_id' in content and os.path.exists(serviceDataPath + "/data/" + content['calculated_sectors_id'] + "_sectors.geojson"):
+    if 'calculated_sectors_id' in content and os.path.exists(serviceStoragePath + "/data/" + content['calculated_sectors_id'] + "_sectors.geojson"):
         with open(settingsPath + "/grass/maxtime.txt", "w") as m:
             if 'max_time' in content:
                 m.write(str(int(math.ceil(content['max_time'] / 3600))))
@@ -216,7 +214,7 @@ def create_sector():
             },
             "features": [content['sector']]
         }
-        with open(serviceDataPath + "/data/" + content['search_id'] + "_create.geojson", "w") as out:
+        with open(serviceStoragePath + "/data/" + content['search_id'] + "_create.geojson", "w") as out:
             json.dump(collection, out)
         create_sector_grass(content['search_id'])
         resp = get_ok_response(content['search_id'], 'create_sector')

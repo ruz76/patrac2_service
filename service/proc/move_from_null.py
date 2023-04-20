@@ -129,7 +129,7 @@ for i in variables:
         #Minimum value and maximum value is used as extent for relass of the whole cost layer
         rules_percentage_f.write(str(MIN) + ' thru ' + str(MAX) + ' = ' + str(i) + '\n')
     except:
-        print "Problem with category " + str(cat) + " " + str(i) + "%"
+        print("Problem with category " + str(cat) + " " + str(i) + "%")
     cat = cat + 1
 
 #Finish reclass rules
