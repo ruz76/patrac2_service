@@ -2,6 +2,7 @@ import csv, io, math, socket, subprocess, os, sys, uuid
 from shutil import copy
 from glob import glob
 import json
+import proc.export as grass_export
 
 pluginPath = "qgis/qgis_patrac"
 dataPath = "/data/patracdata/service/data"
@@ -66,8 +67,9 @@ def create_project_grass(id, xmin, ymin, xmax, ymax, region):
     KRAJ_DATA_PATH = "/data/patracdata/kraje/" + region
     NEW_PROJECT_PATH = dataPath + "/projekty/" + id
     copyTemplate(NEW_PROJECT_PATH, id, region)
-    subprocess.Popen(('bash', pluginPath + "/grass/run_export.sh", KRAJ_DATA_PATH, pluginPath,
-                          str(xmin), str(ymin), str(xmax), str(ymax), NEW_PROJECT_PATH, id))
+    # subprocess.Popen(('bash', pluginPath + "/grass/run_export.sh", KRAJ_DATA_PATH, pluginPath,
+    #                       str(xmin), str(ymin), str(xmax), str(ymax), NEW_PROJECT_PATH, id))
+    grass_export.export(KRAJ_DATA_PATH, pluginPath, str(xmin), str(ymin), str(xmax), str(ymax), NEW_PROJECT_PATH, id)
 
 def get_sectors_grass(id, search_id, coordinates, person_type, percentage):
     with open(dataPath + "/" + id + "_coords.json", "w") as c:
