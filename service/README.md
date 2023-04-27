@@ -23,6 +23,7 @@ pip install shapely
 Cesty jsou v:
 * [config](./config.py)
 * [grass_config](./proc/grass_config.py)
+* [patrac2service.bat](./patrac2service.bat)
 
 # Linux
 
