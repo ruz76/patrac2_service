@@ -73,8 +73,11 @@ def get_sectors_grass(id, search_id, coordinates, person_type, percentage):
 
 
 def get_sectors_to_return(id):
-    with open(serviceDataPath + "/" + id + "_sectors.geojson") as s:
-        return json.load(s)
+    if os.path.exists(serviceDataPath + "/" + id + "_sectors.geojson"):
+        with open(serviceDataPath + "/" + id + "_sectors.geojson") as s:
+            return json.load(s)
+    else:
+        return None
 
 def get_report_grass(id):
     grass_operations.report_export(id)

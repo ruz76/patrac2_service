@@ -2,6 +2,15 @@
 
 Umožňuje spustit omezenou sadu funkcí systému Pátrač přes API.
 
+Existují dvě verze:
+* Nativní pro Windows 10
+* docker
+
+Původně bylo v plánu využít docker, ale nakonec se bude používat nativní varianta. 
+Docker verze nebyla již znovu testována, proto nemusí fungovat. 
+
+Popis nativní verze je v [service/README.md](./service/README.md)
+
 ## Data
 Pro běh vyžaduje data ve stejné struktuře jako má Pátrač. 
 Postupně se toto bude optimalizovat, ale v této chvíli je to plný rozsah pro celý kraj.

@@ -1,14 +1,6 @@
-# Testing without Docker
-
-```bash
-cd ~/Documents/Projekty/PCR/github/patrac2_service/service/
-source venv/bin/activate 
-python3 patrac2service.py
-```
-
 # Spuštění na Windows 10 bez docker
 
-* Testováno na systému s OSGeo4W64. Byly využity knihovny a cesty z jeho konfigurace.
+* Testováno na systému s OSGeo4W64 s grass 7.8. Byly využity knihovny a cesty z jeho konfigurace.
 * Viruální prostředí bylo vytvořeno pomocí Python 3.10 mimo distribuci OSGeo4W64.
 * Spouští se pomocí patrac2service.bat, který se umístí do C:\OSGeo4W64\bin
 
@@ -25,4 +17,17 @@ pip install Flask
 pip install pyproj
 pip install fiona
 pip install shapely
+```
+
+### Nastavení cest k datům
+Cesty jsou v:
+* [config](./config.py)
+* [grass_config](./proc/grass_config.py)
+
+# Linux
+
+```bash
+cd ~/Documents/Projekty/PCR/github/patrac2_service/service/
+source venv/bin/activate 
+python3 patrac2service.py
 ```

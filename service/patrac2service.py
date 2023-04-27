@@ -8,6 +8,7 @@ import pyproj
 import fiona
 from shapely.geometry import shape
 from shapely.geometry import Point
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -35,6 +36,7 @@ def get_log_progress(id):
 
 def get_ok_response(id, type):
     progress = int(get_log_progress(id))
+    print(progress)
     status = 'PROCESSING'
     sectors = None
     if progress == 100:
@@ -54,6 +56,9 @@ def get_ok_response(id, type):
 
     if sectors is not None:
         ret["sectors"] = sectors
+    else:
+        if progress == 100 and type == 'calculate_sectors':
+            ret["status"] = 'ERROR'
 
     resp = Response(response=json.dumps(ret),
                     status=200,
@@ -92,8 +97,12 @@ def create_search():
         existing = False
 
     if not existing:
-        x = float(args.get('x'))
-        y = float(args.get('y'))
+        try:
+            x = float(args.get('x'))
+            y = float(args.get('y'))
+        except:
+            return get_400_response('Illegal inputs. Coordinates are not float numbers.')
+
         if epsg != 5514:
             xy = transform_coordinates_to_5514(x, y, epsg)
             x = xy[0]
@@ -106,11 +115,20 @@ def create_search():
 
         region = get_region(x, y)
         if region is not None:
-            create_project_grass(id, xmin, ymin, xmax, ymax, region)
+            thread = Thread(target=create_project_grass, args=(id, xmin, ymin, xmax, ymax, region,))
+            thread.daemon = True
+            thread.start()
+            with open(serviceStoragePath + "/logs/" + id + ".log", "a") as log:
+                log.write("THREAD STARTED\n0\n")
         else:
             return get_400_response('Illegal inputs. Coordinates are out of any region.')
 
-    time.sleep(timeout)
+    progress = int(get_log_progress(id))
+    time_elapsed = 0
+    while (progress > -1 and progress < 100) and time_elapsed < timeout:
+        time.sleep(1)
+        time_elapsed += 1
+        progress = int(get_log_progress(id))
 
     return get_ok_response(id, "create_search")
 
@@ -141,11 +159,20 @@ def calculate_sectors():
                 for coord in content['coordinates']:
                     xy = transform_coordinates_to_5514(coord[0], coord[1], epsg)
                     coords.append([xy[0], xy[1]])
-            get_sectors_grass(id, content['search_id'], coords, content['person_type'], content['percentage'])
+            thread = Thread(target=get_sectors_grass, args=(id, content['search_id'], coords, content['person_type'], content['percentage'],))
+            thread.daemon = True
+            thread.start()
+            with open(serviceStoragePath + "/logs/" + id + ".log", "a") as log:
+                log.write("THREAD STARTED\n0\n")
         else:
             return get_400_response('Illegal inputs.')
 
-    time.sleep(timeout)
+    progress = int(get_log_progress(id))
+    time_elapsed = 0
+    while (progress > -1 and progress < 100) and time_elapsed < timeout:
+        time.sleep(1)
+        time_elapsed += 1
+        progress = int(get_log_progress(id))
 
     return get_ok_response(id, 'calculate_sectors')
 
