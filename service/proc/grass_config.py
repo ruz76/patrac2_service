@@ -6,9 +6,9 @@ pluginPath = "qgis/qgis_patrac"
 # MS Windows
 grass7bin_win = r'C:\OSGeo4W64\bin\grass78.bat'
 gisbase_win = 'C:/OSGEO4W64/apps/grass/grass78'
-logsPath = "C:/patracdata/service/logs"
-dataPath = "C:/patracdata/service/data"
-patracDataPath = "C:/patracdata"
+logsPath = r"C:\Users\gis\temp\testing environment\patrac_service\data\service\logs"
+dataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data\service\data"
+patracDataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data"
 
 # Linux
 # grass7bin_lin = 'grass78'

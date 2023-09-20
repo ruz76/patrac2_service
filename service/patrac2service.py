@@ -13,11 +13,11 @@ from threading import Thread
 app = Flask(__name__)
 
 def get_region(x, y):
-    with fiona.open(dataPath + '/cr/vusc.shp', 'r', encoding='utf-8') as kraje:
+    with fiona.open(os.path.join(dataPath, 'cr', 'vusc.shp'), 'r', encoding='utf-8') as kraje:
         for feature in kraje:
             poly = shape(feature['geometry'])
             point = Point(x, y)
-            if (poly.contains(point) or point.touches(poly)) and os.path.exists(dataPath + '/kraje/' + feature['properties']['region'] + '/vektor/ZABAGED/line_x/merged_polygons_groupped.shp'):
+            if (poly.contains(point) or point.touches(poly)) and os.path.exists(os.path.join(dataPath, 'kraje', feature['properties']['region'],  'vektor', 'ZABAGED', 'line_x', 'merged_polygons_groupped.shp')):
                 return feature['properties']['region']
     return None
 
@@ -27,8 +27,8 @@ def transform_coordinates_to_5514(x, y, from_code):
     return pyproj.transform(from_proj, to_proj, x, y)
 
 def get_log_progress(id):
-    if os.path.exists(serviceStoragePath + "/logs/" + id + ".log"):
-        with open(serviceStoragePath + "/logs/" + id + ".log", "r") as log:
+    if os.path.exists(os.path.join(serviceStoragePath, "logs", id + ".log")):
+        with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "r") as log:
             lines = log.readlines()
             return lines[len(lines) - 1]
     else:
@@ -118,7 +118,7 @@ def create_search():
             thread = Thread(target=create_project_grass, args=(id, xmin, ymin, xmax, ymax, region,))
             thread.daemon = True
             thread.start()
-            with open(serviceStoragePath + "/logs/" + id + ".log", "a") as log:
+            with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "a") as log:
                 log.write("THREAD STARTED\n0\n")
         else:
             return get_400_response('Illegal inputs. Coordinates are out of any region.')
@@ -162,7 +162,7 @@ def calculate_sectors():
             thread = Thread(target=get_sectors_grass, args=(id, content['search_id'], coords, content['person_type'], content['percentage'],))
             thread.daemon = True
             thread.start()
-            with open(serviceStoragePath + "/logs/" + id + ".log", "a") as log:
+            with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "a") as log:
                 log.write("THREAD STARTED\n0\n")
         else:
             return get_400_response('Illegal inputs.')
@@ -180,13 +180,13 @@ def calculate_sectors():
 def calculate_report():
     content = request.get_json(silent=True)
 
-    if 'calculated_sectors_id' in content and os.path.exists(serviceStoragePath + "/data/" + content['calculated_sectors_id'] + "_sectors.geojson"):
-        with open(settingsPath + "/grass/maxtime.txt", "w") as m:
+    if 'calculated_sectors_id' in content and os.path.exists(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_sectors.geojson")):
+        with open(os.path.join(settingsPath, "grass", "maxtime.txt"), "w") as m:
             if 'max_time' in content:
                 m.write(str(int(math.ceil(content['max_time'] / 3600))))
             else:
                 m.write("3")
-        with open(settingsPath + "/grass/units.txt", "w") as u:
+        with open(os.path.join(settingsPath, "grass", "units.txt"), "w") as u:
             if 'handlers' in content:
                 u.write(str(content['handlers']) + ";\n")
             else:
@@ -241,7 +241,7 @@ def create_sector():
             },
             "features": [content['sector']]
         }
-        with open(serviceStoragePath + "/data/" + content['search_id'] + "_create.geojson", "w") as out:
+        with open(os.path.join(serviceStoragePath, "data", content['search_id'] + "_create.geojson"), "w") as out:
             json.dump(collection, out)
         create_sector_grass(content['search_id'])
         resp = get_ok_response(content['search_id'], 'create_sector')

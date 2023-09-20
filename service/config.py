@@ -1,12 +1,14 @@
+import os
+
 # Windows
-dataPath = "C:/patracdata" # Replace with path to the data
+dataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data"  # Replace with path to the data
 
 # Linux
 # dataPath = "/data/patracdata"
 
-serviceStoragePath = dataPath + "/service"
-serviceDataPath = dataPath + "/service/data"
-pluginPath = "qgis/qgis_patrac"
-settingsPath = "qgis/qgis_patrac_settings"
+serviceStoragePath = os.path.join(dataPath, "service")
+serviceDataPath = os.path.join(dataPath, "service/data")
+pluginPath = os.path.join("qgis", "qgis_patrac")
+settingsPath = os.path.join("qgis", "qgis_patrac_settings")
 
 

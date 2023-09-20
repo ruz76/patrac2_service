@@ -61,13 +61,17 @@ def init_grass(gisdb, location, mapset):
     gsetup.init(gisbase,
                 gisdb, location, mapset)
 
+def logInfo(message, ID):
+    with open(os.path.join(logsPath, ID + ".log"), "a") as log:
+        log.write(message)
+
 def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
     # DATA
     # define GRASS DATABASE
     # add your path to grassdata (GRASS GIS database) directory
     DATAPATH=datapath
     ID=id
-    gisdb = DATAPATH + "/grassdata"
+    gisdb = os.path.join(DATAPATH, "grassdata")
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -78,8 +82,7 @@ def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
     init_grass(gisdb, location, mapset)
     import grass.script as gscript
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("EXPORT STARTED\n5\n")
+    logInfo("EXPORT STARTED\n5\n", ID)
 
     PLUGIN_PATH=plugin_path
     XMIN=xmin
@@ -99,30 +102,26 @@ def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
     #Exports landuse
     #r.out.ascii input=landuse output=landuse.ascii
     #Bin would be better (size is smaller, export is faster), but there are some problems with import
-    print(gscript.read_command('r.out.bin', flags="h", input='landuse', output=DATAOUTPUTPATH+'/grassdata/landuse.bin', overwrite=True))
+    print(gscript.read_command('r.out.bin', flags="h", input='landuse', output=os.path.join(DATAOUTPUTPATH, 'grassdata', 'landuse.bin'), overwrite=True))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("LANDUSE EXPORTED\n10\n")
+    logInfo("LANDUSE EXPORTED\n10\n", ID)
 
     #Exports friction_slope
     #r.out.ascii input=friction_slope output=friction_slope.ascii
     #Bin would be better (size is smaller, export is faster), but there are some problems with import
-    print(gscript.read_command('r.out.bin', flags="h", null=-99, input='friction_slope', output=DATAOUTPUTPATH+'/grassdata/friction_slope.bin', overwrite=True))
+    print(gscript.read_command('r.out.bin', flags="h", null=-99, input='friction_slope', output=os.path.join(DATAOUTPUTPATH, 'grassdata', 'friction_slope.bin'), overwrite=True))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("FRICTION_SLOPE EXPORTED\n15\n")
+    logInfo("FRICTION_SLOPE EXPORTED\n15\n", ID)
 
     #Exports friction only, without slope, we will use r.walk instead r.cost
-    print(gscript.read_command('r.out.bin', flags="h", null=100, input='friction', output=DATAOUTPUTPATH+'/grassdata/friction.bin', overwrite=True))
+    print(gscript.read_command('r.out.bin', flags="h", null=100, input='friction', output=os.path.join(DATAOUTPUTPATH, 'grassdata', 'friction.bin'), overwrite=True))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("FRICTION EXPORTED\n20\n")
+    logInfo("FRICTION EXPORTED\n20\n", ID)
 
     #Exports dem, r.walk needs dem to calculate slope in realtime
-    print(gscript.read_command('r.out.bin', flags="h", input='dem', output=DATAOUTPUTPATH+'/grassdata/dem.bin', overwrite=True))
+    print(gscript.read_command('r.out.bin', flags="h", input='dem', output=os.path.join(DATAOUTPUTPATH, 'grassdata', 'dem.bin'), overwrite=True))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("DEM EXPORTED\n25\n")
+    logInfo("DEM EXPORTED\n25\n", ID)
 
     import_data(DATAOUTPUTPATH, PLUGIN_PATH, XMIN, YMIN, XMAX, YMAX, DATAPATH, ID)
 
@@ -132,7 +131,7 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     # add your path to grassdata (GRASS GIS database) directory
     DATAPATH=datapath
     ID=id
-    gisdb = DATAPATH + "/grassdata"
+    gisdb = os.path.join(DATAPATH, "grassdata")
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -143,8 +142,7 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     init_grass(gisdb, location, mapset)
     import grass.script as gscript
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("IMPORT STARTED\n30\n")
+    logInfo("IMPORT STARTED\n30\n", ID)
 
     PLUGIN_PATH=plugin_path
     XMIN=xmin
@@ -158,52 +156,46 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     print(gscript.read_command('g.region', e=XMAX, w=XMIN, n=YMAX, s=YMIN, res='5'))
 
     #Imports landuse
-    print(gscript.read_command('r.in.bin', flags="h", bytes=2, output='landuse', input=DATAPATH+'/grassdata/landuse.bin', overwrite=True))
+    print(gscript.read_command('r.in.bin', flags="h", bytes=2, output='landuse', input=os.path.join(DATAPATH, 'grassdata', 'landuse.bin'), overwrite=True))
     # Delete the file
-    os.remove(DATAPATH+'/grassdata/landuse.bin')
+    os.remove(os.path.join(DATAPATH, 'grassdata', 'landuse.bin'))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("LANDUSE IMPORTED\n35\n")
+    logInfo("LANDUSE IMPORTED\n35\n", ID)
 
     #Imports friction_slope
-    print(gscript.read_command('r.in.bin', flags="hf", anull=-99, output='friction_slope', input=DATAPATH+'/grassdata/friction_slope.bin', overwrite=True))
+    print(gscript.read_command('r.in.bin', flags="hf", anull=-99, output='friction_slope', input=os.path.join(DATAPATH, 'grassdata', 'friction_slope.bin'), overwrite=True))
     # Delete the file
-    os.remove(DATAPATH+'/grassdata/friction_slope.bin')
+    os.remove(os.path.join(DATAPATH, 'grassdata', 'friction_slope.bin'))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("FRICTION_SLOPE IMPORTED\n40\n")
+    logInfo("FRICTION_SLOPE IMPORTED\n40\n", ID)
 
     #Imports friction
-    print(gscript.read_command('r.in.bin', flags="h", bytes=2, anull=100, output='friction', input=DATAPATH+'/grassdata/friction.bin', overwrite=True))
+    print(gscript.read_command('r.in.bin', flags="h", bytes=2, anull=100, output='friction', input=os.path.join(DATAPATH, 'grassdata', 'friction.bin'), overwrite=True))
     # Delete the file
-    os.remove(DATAPATH+'/grassdata/friction.bin')
+    os.remove(os.path.join(DATAPATH, 'grassdata', 'friction.bin'))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("FRICTION IMPORTED\n45\n")
+    logInfo("FRICTION IMPORTED\n45\n", ID)
 
     #Imports dem
-    print(gscript.read_command('r.in.bin', flags="hf", output='dem', input=DATAPATH+'/grassdata/dem.bin', overwrite=True))
+    print(gscript.read_command('r.in.bin', flags="hf", output='dem', input=os.path.join(DATAPATH, 'grassdata', 'dem.bin'), overwrite=True))
     # Delete the file
-    os.remove(DATAPATH+'/grassdata/dem.bin')
+    os.remove(os.path.join(DATAPATH, 'grassdata', 'dem.bin'))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("DEM IMPORTED\n50\n")
+    logInfo("DEM IMPORTED\n50\n", ID)
 
     #If the data are from ZABAGED
-    if os.path.isfile(DATAINPUTPATH+'/vektor/ZABAGED/line_x/merged_polygons_groupped.shp'):
-        print(gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/ZABAGED/line_x', snap=0.01, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
-        print(gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=PLUGIN_PATH+'/grass/landuse_type_zbg.rules'))
+    if os.path.isfile(os.path.join(DATAINPUTPATH, 'vektor', 'ZABAGED', 'line_x', 'merged_polygons_groupped.shp')):
+        print(gscript.read_command('v.in.ogr', output='sectors_group', input=os.path.join(DATAINPUTPATH, 'vektor', 'ZABAGED', 'line_x'), snap=0.01, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
+        print(gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=os.path.join(PLUGIN_PATH, 'grass', 'landuse_type_zbg.rules')))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("SECTORS IMPORTED\n55\n")
+    logInfo("SECTORS IMPORTED\n55\n", ID)
 
     #If the data are from OSM
-    if os.path.isfile(DATAINPUTPATH+'/vektor/OSM/line_x/merged_polygons_groupped.shp'):
-        print(gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/OSM/line_x', snap=0.01, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
-        print(gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=PLUGIN_PATH+'/grass/landuse_type_osm.rules'))
+    if os.path.isfile(os.path.join(DATAINPUTPATH, 'vektor', 'OSM', 'line_x', 'merged_polygons_groupped.shp')):
+        print(gscript.read_command('v.in.ogr', output='sectors_group', input=os.path.join(DATAINPUTPATH, 'vektor', 'OSM', 'line_x'), snap=0.01, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
+        print(gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=os.path.join(PLUGIN_PATH, 'grass', 'landuse_type_osm.rules')))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("LANDUSE RECLASSED IMPORTED\n60\n")
+    logInfo("LANDUSE RECLASSED IMPORTED\n60\n", ID)
 
     #Adds progress columns
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='"stav INTEGER"', overwrite=True))
@@ -218,22 +210,18 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='od_cas VARCHAR(50)', overwrite=True))
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='do_cas VARCHAR(50)', overwrite=True))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("ADDED COLUMNS TO SECTORS\n65\n")
+    logInfo("ADDED COLUMNS TO SECTORS\n65\n", ID)
 
     #Exports sectors with comupted areas
-    print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sectors_group', output=DATAPATH +'/pracovni/sektory_group_selected.shp', overwrite=True))
-    print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sectors_group', output=DATAPATH +'/pracovni/sektory_group.shp', overwrite=True))
+    print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sectors_group', output=os.path.join(DATAPATH, 'pracovni', 'sektory_group_selected.shp'), overwrite=True))
+    print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sectors_group', output=os.path.join(DATAPATH, 'pracovni', 'sektory_group.shp'), overwrite=True))
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("SECTORS EXPORTED\n100\n")
-
+    logInfo("SECTORS EXPORTED\n100\n", ID)
 
 
 def get_sectors_grass(id, search_id, person_type, percentage):
-    with open(logsPath + "/" + id + ".log", "a") as log:
-        log.write("JUST TEST\n15\n")
-    with open(dataPath + "/" + id + "_coords.json") as c:
+    logInfo("STARTED SECTORS EXPORT\n15\n", id)
+    with open(os.path.join(dataPath, id + "_coords.json")) as c:
         coords = json.load(c)
     writeAzimuthReclass(0, 0, 0)
     i = 0
@@ -259,8 +247,7 @@ def get_sectors_grass(id, search_id, person_type, percentage):
     getSectors(0, percentage, search_id)
     convertToGeoJSON(id, search_id)
     saveRegion(id, search_id)
-    with open(logsPath + "/" + id + ".log", "a") as log:
-        log.write("SECTORS EXPORTED\n100\n")
+    logInfo("SECTORS EXPORTED\n100\n", id)
 
 def getPersonTypeId(person_type):
     # TODO check if the type exists
@@ -270,9 +257,9 @@ def getPersonTypeId(person_type):
 def findAreaWithRadial(coord, id, person_type_id, search_id):
     coords = str(coord[0]) + ',' + str(coord[1])
     # writes coord to file for grass
-    with open (pluginPath + '/grass/coords.txt', 'w') as f_coords:
+    with open(os.path.join(pluginPath, 'grass', 'coords.txt'), 'w') as f_coords:
         f_coords.write(coords)
-    cost_distance(dataPath + "/projekty/" + search_id, id, person_type_id)
+    cost_distance(os.path.join(dataPath, 'projekty', search_id), id, person_type_id)
 
 def getRadialAlpha(i, KVADRANT):
     """Returns angle based on quandrante"""
@@ -304,7 +291,7 @@ def generateRadialOnPoint(coord):
     # Radius is set ot 20000 meters to be sure that whole area is covered
     RADIUS = 20000;
     # Writes output to radial.csv
-    csv = open(pluginPath + "/grass/radial.csv", "w")
+    csv = open(os.path.join(pluginPath, 'grass', 'radial.csv'), "w")
     # Writes in WKT format
     csv.write("id;wkt\n")
     generateRadial(CENTERX, CENTERY, RADIUS, 1, csv)
@@ -388,7 +375,7 @@ def writeAzimuthReclass(azimuth, tolerance, friction):
         Tolerance is for example 30 degrees
         Friction is how frict is the direction
     """
-    reclass = open(pluginPath + "/grass/azimuth_reclass.rules", "w")
+    reclass = open(os.path.join(pluginPath, 'grass', 'azimuth_reclass.rules'), "w")
     tolerance_half = tolerance / 2
     astart = int(azimuth) - tolerance_half
     aend = int(azimuth) + tolerance_half
@@ -413,7 +400,7 @@ def writeAzimuthReclass(azimuth, tolerance, friction):
     reclass.close()
 
 def checkCats():
-    rules_percentage_path = pluginPath + "/grass/rules_percentage.txt"
+    rules_percentage_path = os.path.join(pluginPath, 'grass', 'rules_percentage.txt')
     if os.path.exists(rules_percentage_path):
         try:
             cats = ["= 10", "= 20", "= 30", "= 40", "= 50", "= 60", "= 70", "= 80", "= 95"]
@@ -434,20 +421,20 @@ def checkCats():
         return False
 
 def saveDistancesCostedEquation(distances_costed_cum, search_id):
-    f = open(dataPath + "/projekty/" + search_id + '/pracovni/distancesCostedEquation.txt', 'w')
+    f = open(os.path.join(dataPath, 'projekty', search_id, 'pracovni', 'distancesCostedEquation.txt'), 'w')
     f.write(distances_costed_cum)
     f.close()
 
 def createCumulativeArea(search_id):
-    DATAPATH = dataPath + "/projekty/" + search_id
-    if os.path.isfile(DATAPATH + '/pracovni/distances_costed_cum.tif.aux.xml'):
-        os.remove(DATAPATH + '/pracovni/distances_costed_cum.tif.aux.xml')
-    if os.path.isfile(DATAPATH + '/pracovni/distances_costed_cum.tif'):
-        os.remove(DATAPATH + '/pracovni/distances_costed_cum.tif')
-    if os.path.isfile(DATAPATH + '/pracovni/distances_costed_cum.tfw'):
-        os.remove(DATAPATH + '/pracovni/distances_costed_cum.tfw')
+    DATAPATH = os.path.join(dataPath, 'projekty', search_id)
+    if os.path.isfile(os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tif.aux.xml')):
+        os.remove(os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tif.aux.xml'))
+    if os.path.isfile(os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tif')):
+        os.remove(os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tif'))
+    if os.path.isfile(os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tfw')):
+        os.remove(os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tfw'))
 
-    gisdb = DATAPATH + "/grassdata"
+    gisdb = os.path.join(DATAPATH, 'grassdata')
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -458,14 +445,14 @@ def createCumulativeArea(search_id):
     init_grass(gisdb, location, mapset)
     import grass.script as gscript
 
-    DISTANCES = open(DATAPATH + "/pracovni/distancesCostedEquation.txt", 'r').read()
+    DISTANCES = open(os.path.join(DATAPATH, 'pracovni', 'distancesCostedEquation.txt'), 'r').read()
 
     #Gets all distances costed created in cost_distance and reads minimum value from it
     #I think that now this is not necessary, because we use only one start point so the DISTANCES has only one layer
     #But this can be used in future in a case when there are more than one input point
     print(gscript.read_command('r.mapcalc', expression='distances_costed_cum = ' + DISTANCES, overwrite=True))
     #Exports output to the GeoTIFF format
-    print(gscript.read_command('r.out.gdal', input='distances_costed_cum', output=DATAPATH + '/pracovni/distances_costed_cum.tif', type='Float64', createopt='PROFILE=BASELINE,TFW=YES', overwrite=True))
+    print(gscript.read_command('r.out.gdal', input='distances_costed_cum', output=os.path.join(DATAPATH, 'pracovni', 'distances_costed_cum.tif'), type='Float64', createopt='PROFILE=BASELINE,TFW=YES', overwrite=True))
 
 
 
@@ -475,8 +462,8 @@ def getSectors(min, max, search_id):
     # DATA
     # define GRASS DATABASE
     # add your path to grassdata (GRASS GIS database) directory
-    DATAPATH = dataPath + "/projekty/" + search_id
-    gisdb = DATAPATH + "/grassdata"
+    DATAPATH = os.path.join(dataPath, 'projekty', search_id)
+    gisdb = os.path.join(DATAPATH, 'grassdata')
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -498,13 +485,13 @@ def getSectors(min, max, search_id):
     #Linux
     #print gscript.read_command('v.out.ogr', input='sektory_group_selected', output=DATAPATH +'/pracovni/', overwrite=True)
     #Windows
-    print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sektory_group_selected', output=DATAPATH +'/pracovni/sektory_group_selected.shp', overwrite=True))
-    print(gscript.read_command('v.out.ogr', format='CSV', input='sektory_group_selected', output=DATAPATH +'/pracovni/sektory_group_selected.csv', overwrite=True))
+    print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sektory_group_selected', output=os.path.join(DATAPATH, 'pracovni', 'sektory_group_selected.shp'), overwrite=True))
+    print(gscript.read_command('v.out.ogr', format='CSV', input='sektory_group_selected', output=os.path.join(DATAPATH, 'pracovni', 'sektory_group_selected.csv'), overwrite=True))
 
 def convertToGeoJSON(id, search_id):
     features = []
 
-    with fiona.open(dataPath + "/projekty/" + search_id + "/pracovni/sektory_group_selected.shp", "r") as sectors:
+    with fiona.open(os.path.join(dataPath, 'projekty', search_id, 'pracovni', 'sektory_group_selected.shp'), "r") as sectors:
 
         wgs84 = "EPSG:4326"
         jtsk = {"init": "epsg:5514", "towgs84": "570.8,85.7,462.8,4.998,1.587,5.261,3.56"}
@@ -529,7 +516,7 @@ def convertToGeoJSON(id, search_id):
     schema1 = {"geometry": "Unknown", "properties": [("id", "str")]}
 
     # attempt to overwrite it with a valid file
-    with fiona.open(dataPath + "/" + id + "_sectors.geojson", "w", driver="GeoJSON", schema=schema1) as dst:
+    with fiona.open(os.path.join(dataPath, id + "_sectors.geojson"), "w", driver="GeoJSON", schema=schema1) as dst:
         dst.writerecords(features)
 
     # This does not work on Windows Python 3.10
@@ -537,18 +524,18 @@ def convertToGeoJSON(id, search_id):
     #     json.dump(data, out)
 
 def saveRegion(id, search_id):
-    with open(dataPath + "/projekty/" + search_id + "/pracovni/region.txt") as r:
+    with open(os.path.join(dataPath, 'projekty', search_id, 'pracovni', 'region.txt')) as r:
         region = r.read().rstrip()
-        with open(dataPath + "/" + id + "_sectors.geojson") as g:
+        with open(os.path.join(dataPath, id + "_sectors.geojson")) as g:
             data = json.load(g)
             data['metadata'] = {}
             data['metadata']['region'] = region
             data['metadata']['search_id'] = search_id
 
-    with open(dataPath + "/" + id + "_sectors.geojson", "w") as out:
+    with open(os.path.join(dataPath, id + "_sectors.geojson"), "w") as out:
         json.dump(data, out)
 
-def move_from_null():
+def move_from_null(PLUGIN_PATH):
     print("Moving from null")
     # if the min value is null
     print(gscript.read_command('r.mapcalc', expression='friction_null_rec=if(isnull(friction), 1, null())',
@@ -566,13 +553,13 @@ def move_from_null():
     try:
         # Reads min value
         MIN = float(stats2['min'])
-        f = open(PLUGIN_PATH + '/grass/move.rules', 'w')
-        f.write(str(MIN) + ' = 1\n')
-        f.write('* = null\n')
-        f.write('end')
-        f.close()
+        with open(os.path.join(PLUGIN_PATH, 'grass', 'move.rules'), 'w') as f:
+            f.write(str(MIN) + ' = 1\n')
+            f.write('* = null\n')
+            f.write('end')
+
         print(gscript.read_command('r.reclass', input='friction_flat_cost_buf', output='coords',
-                                   rules=PLUGIN_PATH + '/grass/move.rules', overwrite=True))
+                                   rules=os.path.join(PLUGIN_PATH, 'grass', 'move.rules'), overwrite=True))
         print(gscript.read_command('r.to.vect', input='coords', output='coords', type='point', overwrite=True))
     except:
         print("Problem with moving of the point from null area")
@@ -582,7 +569,7 @@ def cost_distance(data_path, id, person_type_id):
     # define GRASS DATABASE
     # add your path to grassdata (GRASS GIS database) directory
     DATAPATH=data_path
-    gisdb = DATAPATH + "/grassdata"
+    gisdb = os.path.join(DATAPATH, 'grassdata')
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -603,14 +590,14 @@ def cost_distance(data_path, id, person_type_id):
         print("NO MASK")
 
     #Removes reclass rules
-    rules_percentage_path = PLUGIN_PATH + '/grass/rules_percentage.txt'
+    rules_percentage_path = os.path.join(PLUGIN_PATH, 'grass', 'rules_percentage.txt')
     if os.path.exists(rules_percentage_path):
         os.remove(rules_percentage_path)
 
     #Reads coords from coords.txt written by patracdockwidget.getArea
     print(gscript.read_command('g.remove', type='vector', name='coords'))
     print(gscript.read_command('g.remove', type='raster', name='coords'))
-    print(gscript.read_command('v.in.ascii', input=PLUGIN_PATH + '/grass/coords.txt', output='coords', separator='comma' , overwrite=True))
+    print(gscript.read_command('v.in.ascii', input=os.path.join(PLUGIN_PATH, 'grass', 'coords.txt'), output='coords', separator='comma' , overwrite=True))
     #Converts to the raster
     print(gscript.read_command('v.to.rast', input='coords', output='coords', use='cat' , overwrite=True))
 
@@ -623,22 +610,22 @@ def cost_distance(data_path, id, person_type_id):
         MIN = float(stats['min'])
         print("MINIMUM: " + str(MIN))
         if str(MIN) == "nan":
-            move_from_null()
+            move_from_null(PLUGIN_PATH)
     except:
-        move_from_null()
+        move_from_null(PLUGIN_PATH)
 
 
     #Reads radial CSV with WKT of triangles writtent by patracdockwidget.generateRadialOnPoint
-    print(gscript.read_command('v.in.ogr', input=PLUGIN_PATH + '/grass/radial.csv', output='radial', flags='o' , overwrite=True))
+    print(gscript.read_command('v.in.ogr', input=os.path.join(PLUGIN_PATH, 'grass', 'radial.csv'), output='radial', flags='o' , overwrite=True))
     #Converts triangles to raster
     print(gscript.read_command('v.to.rast', input='radial', output='radial', use='cat', overwrite=True))
     #Reclass triangles according to rules created by patracdockwidget.writeAzimuthReclass
-    print(gscript.read_command('r.reclass', input='radial', output='radial' + PLACE_ID, rules=PLUGIN_PATH + '/grass/azimuth_reclass.rules', overwrite=True))
+    print(gscript.read_command('r.reclass', input='radial', output='radial' + PLACE_ID, rules=os.path.join(PLUGIN_PATH, 'grass', 'azimuth_reclass.rules'), overwrite=True))
     #Combines friction_slope with radial (direction)
     print(gscript.read_command('r.mapcalc', expression='friction_radial' + PLACE_ID + ' = friction + radial' + PLACE_ID, overwrite=True))
 
     #Reads distances from distances selected (or defined) by user
-    distances_f=open(PLUGIN_PATH + "/grass/distances.txt")
+    distances_f=open(os.path.join(PLUGIN_PATH, 'grass', 'distances.txt'))
     lines=distances_f.readlines()
     DISTANCES=lines[TYPE-1]
 
@@ -660,10 +647,10 @@ def cost_distance(data_path, id, person_type_id):
     for i in variables:
         print(i)
         #Writes rules for the category so we have only one ring in the output
-        f = open(PLUGIN_PATH + '/grass/rules.txt', 'w')
-        f.write(str(cat) + ' = 1\n')
-        f.write('end')
-        f.close()
+        with open(os.path.join(PLUGIN_PATH, 'grass', 'rules.txt'), 'w') as f:
+            f.write(str(cat) + ' = 1\n')
+            f.write('end')
+
         #Gets only one ring
         print(gscript.read_command('r.reclass', input='distances' + PLACE_ID, output='distances' + PLACE_ID + '_' + str(i), rules=PLUGIN_PATH + '/grass/rules.txt', overwrite=True))
         #Combines ring with friction (cost algorithm result)
@@ -696,7 +683,7 @@ def cost_distance(data_path, id, person_type_id):
     rules_percentage_f.close()
 
     #Finaly reclass whole cost layer based on min and max values for each ring
-    print(gscript.read_command('r.reclass', input='cost' + PLACE_ID, output='distances' + PLACE_ID + '_costed', rules=PLUGIN_PATH + '/grass/rules_percentage.txt', overwrite=True))
+    print(gscript.read_command('r.reclass', input='cost' + PLACE_ID, output='distances' + PLACE_ID + '_costed', rules=os.path.join(PLUGIN_PATH, 'grass', 'rules_percentage.txt'), overwrite=True))
 
 def fixUt(ut):
     if ut == 0:
@@ -708,11 +695,11 @@ def fixUt(ut):
 def report_export(id):
     ID = id
 
-    with open(dataPath + "/" + ID + "_sectors.geojson") as g:
+    with open(os.path.join(dataPath, ID + "_sectors.geojson")) as g:
         geojson = json.load(g)
 
-    DATAPATH = dataPath + "/projekty/" + geojson["metadata"]["search_id"]
-    gisdb = DATAPATH + "/grassdata"
+    DATAPATH = os.path.join(dataPath, 'projekty', geojson["metadata"]["search_id"])
+    gisdb = os.path.join(DATAPATH, 'grassdata')
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -723,9 +710,8 @@ def report_export(id):
     init_grass(gisdb, location, mapset)
     import grass.script as gscript
 
-    print(gscript.read_command('v.in.ogr', output='sektory_group_selected_modified', input=DATAPATH+'/pracovni', snap=0.01, layer='sektory_group_selected', overwrite=True, flags="o"))
+    print(gscript.read_command('v.in.ogr', output='sektory_group_selected_modified', input=os.path.join(DATAPATH, 'pracovni'), snap=0.01, layer='sektory_group_selected', overwrite=True, flags="o"))
 
-    print("749")
     # Sets area of areas to zero
     SUM_P1 = 0
     SUM_P2 = 0
@@ -740,7 +726,7 @@ def report_export(id):
 
     conn = None
     try:
-        conn = sqlite3.connect(patracDataPath + "/kraje/" + geojson["metadata"]["region"] + "/vektor/ZABAGED/line_x/stats.db")
+        conn = sqlite3.connect(os.path.join(patracDataPath, 'kraje', geojson["metadata"]["region"], 'vektor', 'ZABAGED', 'line_x', 'stats.db'))
     except Error as e:
         # TODO this is not good way
         sys.exit()
@@ -886,7 +872,7 @@ def report_export(id):
     # Reads numbers for existing search units from units.txt
     units_counts = []
 
-    fileInput = open(settingsPath + "/grass/units.txt", mode="r")
+    fileInput = open(os.path.join(settingsPath, 'grass', 'units.txt'), mode="r")
 
     for row in csv.reader(fileInput, delimiter=';'):
         # unicode_row = [x.decode('utf8') for x in row]
@@ -909,7 +895,7 @@ def report_export(id):
         int(math.ceil(SUM_P10))
     ]
 
-    unitsTimesPath = settingsPath + "/grass/units_times.csv"
+    unitsTimesPath = os.path.join(settingsPath, 'grass', 'units_times.csv')
     fileInput = open(unitsTimesPath, mode="r")
 
     # Reads CSV and populates the array
@@ -1017,9 +1003,9 @@ def report_export(id):
         units_areas_alternatives.append(0) # No other yet
 
     maxtime = 3
-    if os.path.isfile(settingsPath + "/grass/maxtime.txt"):
+    if os.path.isfile(os.path.join(settingsPath, 'grass', 'maxtime.txt')):
         try:
-            maxtime = int(open(settingsPath + "/grass/maxtime.txt", 'r').read())
+            maxtime = int(open(os.path.join(settingsPath, 'grass', 'maxtime.txt'), 'r').read())
         except ValueError:
             maxtime = 3
 
@@ -1050,7 +1036,7 @@ def report_export(id):
             "units_necessary": units_necessary
         }
     }
-    with open(dataPath + "/" + ID + "_report.json", "w") as r:
+    with open(os.path.join(dataPath, ID + "_report.json"), "w") as r:
         json.dump(report, r)
 
 
@@ -1059,7 +1045,7 @@ def create_sector(data_path, search_id):
     # define GRASS DATABASE
     # add your path to grassdata (GRASS GIS database) directory
     DATAPATH = data_path
-    gisdb = DATAPATH + "/grassdata"
+    gisdb = os.path.join(DATAPATH,  'grassdata')
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -1072,25 +1058,22 @@ def create_sector(data_path, search_id):
 
     ID = search_id
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("\nCREATE OF SECTOR IN SEARCH " + ID + " STARTED\n10\n")
+    logInfo("\nCREATE OF SECTOR IN SEARCH " + ID + " STARTED\n10\n", ID)
 
     try:
-        print(gscript.read_command('v.in.ogr', output='sectors_group', input=DATAPATH +'/pracovni/', snap=0.01, layer='sektory_group', overwrite=True, flags="o"))
+        print(gscript.read_command('v.in.ogr', output='sectors_group', input=os.path.join(DATAPATH, 'pracovni'), snap=0.01, layer='sektory_group', overwrite=True, flags="o"))
     except Exception as e:
-        with open(logsPath + "/" + ID + ".log", "a") as log:
-            log.write(str(e) + "\nERROR IN CREATE OF SECTOR IN SEARCH " + ID + "\n-1")
-            exit(1)
+        logInfo(str(e) + "\nERROR IN CREATE OF SECTOR IN SEARCH " + ID + "\n-1", ID)
+        exit(1)
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("CREATE OF SECTOR IN SEARCH " + ID + " FINISHED\n100\n")
+    logInfo("CREATE OF SECTOR IN SEARCH " + ID + " FINISHED\n100\n", ID)
 
 def delete_sector(data_path, search_id, sector_id):
     # DATA
     # define GRASS DATABASE
     # add your path to grassdata (GRASS GIS database) directory
     DATAPATH = data_path
-    gisdb = DATAPATH + "/grassdata"
+    gisdb = os.path.join(DATAPATH, 'grassdata')
     # the following path is the default path on MS Windows
     # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
@@ -1104,16 +1087,13 @@ def delete_sector(data_path, search_id, sector_id):
     ID = search_id
     SECTOR_ID = sector_id
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("\nDELETE OF " + SECTOR_ID + " IN SEARCH " + ID + " STARTED\n10\n")
+    logInfo("\nDELETE OF " + SECTOR_ID + " IN SEARCH " + ID + " STARTED\n10\n", ID)
 
     try:
         print(gscript.read_command('v.edit', map='sectors_group', tool='delete', where="id = '" + SECTOR_ID + "'"))
-        print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sectors_group', output=DATAPATH +'/pracovni/sektory_group.shp', overwrite=True))
+        print(gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sectors_group', output=os.path.join(DATAPATH, 'pracovni', 'sektory_group.shp'), overwrite=True))
     except Exception as e:
-        with open(logsPath + "/" + ID + ".log", "a") as log:
-            log.write(str(e) + "\nERROR IN DELETE OF " + SECTOR_ID + " IN SEARCH " + ID + "\n-1")
-            exit(1)
+        logInfo(str(e) + "\nERROR IN DELETE OF " + SECTOR_ID + " IN SEARCH " + ID + "\n-1", ID)
+        exit(1)
 
-    with open(logsPath + "/" + ID + ".log", "a") as log:
-        log.write("DELETE OF " + SECTOR_ID + " IN SEARCH " + ID + " FINISHED\n100\n")
+    logInfo("DELETE OF " + SECTOR_ID + " IN SEARCH " + ID + " FINISHED\n100\n", ID)

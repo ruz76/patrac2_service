@@ -11,5 +11,5 @@ set VSI_CACHE=TRUE
 set VSI_CACHE_SIZE=1000000
 set QT_PLUGIN_PATH=%OSGEO4W_ROOT%\apps\qgis\qtplugins;%OSGEO4W_ROOT%\apps\qt5\plugins
 set PYTHONPATH=%OSGEO4W_ROOT%\apps\qgis\python;%PYTHONPATH%
-cd C:\Users\gis\patrac2_service\service
+cd "C:\Users\gis\temp\testing environment\patrac_service\service"
 venv\Scripts\activate && python patrac2service.py
