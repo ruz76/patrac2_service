@@ -34,6 +34,14 @@ def get_log_progress(id):
     else:
         return "-1"
 
+def get_log_info(id):
+    if os.path.exists(os.path.join(serviceStoragePath, "logs", id + ".log")):
+        with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "r") as log:
+            lines = log.readlines()
+            return lines[len(lines) - 2].strip()
+    else:
+        return "ERROR. Unknown Error."
+
 def get_ok_response(id, type):
     progress = int(get_log_progress(id))
     print(progress)
@@ -130,7 +138,11 @@ def create_search():
         time_elapsed += 1
         progress = int(get_log_progress(id))
 
-    return get_ok_response(id, "create_search")
+    message = get_log_info(id)
+    if message.startswith('ERROR'):
+        return get_400_response(message)
+    else:
+        return get_ok_response(id, 'create_search')
 
 @app.route("/calculate_sectors", methods=['POST'])
 def calculate_sectors():
@@ -141,7 +153,7 @@ def calculate_sectors():
 
     existing = False
     id = str(uuid.uuid4())
-    if 'id' in content:
+    if 'id' in content and content['id'] != '':
         id = content['id']
         existing = True
 
@@ -174,7 +186,11 @@ def calculate_sectors():
         time_elapsed += 1
         progress = int(get_log_progress(id))
 
-    return get_ok_response(id, 'calculate_sectors')
+    message = get_log_info(id)
+    if message.startswith('ERROR'):
+        return get_400_response(message)
+    else:
+        return get_ok_response(id, 'calculate_sectors')
 
 @app.route("/calculate_report", methods=['POST'])
 def calculate_report():

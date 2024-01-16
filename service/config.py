@@ -4,7 +4,7 @@ import os
 dataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data"  # Replace with path to the data
 
 # Linux
-# dataPath = "/data/patracdata"
+dataPath = "/data/patracdata"
 
 serviceStoragePath = os.path.join(dataPath, "service")
 serviceDataPath = os.path.join(dataPath, "service/data")

@@ -323,7 +323,7 @@ paths:
                   - report
                 example:
                   id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-                  output:
+                  report:
                     surfaces: [11, 1, 0, 588, 1, 156, 35, 0, 2, 0]
                     units_areas: [588, 190, 0, 0, 11, 2, 0]
                     units_areas_alternatives: [0, 789, 0, 0, 0, 2, 0]

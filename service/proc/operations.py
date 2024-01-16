@@ -229,10 +229,13 @@ def get_sectors_grass(id, search_id, person_type, percentage):
     max_weight = 1
     for coord in coords:
         generateRadialOnPoint(coord)
-        findAreaWithRadial(coord, i, getPersonTypeId(person_type), search_id)
+        result = findAreaWithRadial(coord, i, getPersonTypeId(person_type), search_id)
+        if result is None:
+            logInfo("ERROR MOVING POINT FROM NULL AREA\n-1\n", id)
+            return
         cats_status = checkCats()
         if not cats_status:
-            # TODO return error
+            logInfo("ERROR MOVING POINT FROM NULL AREA\n-1\n", id)
             return
         cur_weight = "1"
         if (i == 0):
@@ -259,7 +262,8 @@ def findAreaWithRadial(coord, id, person_type_id, search_id):
     # writes coord to file for grass
     with open(os.path.join(pluginPath, 'grass', 'coords.txt'), 'w') as f_coords:
         f_coords.write(coords)
-    cost_distance(os.path.join(dataPath, 'projekty', search_id), id, person_type_id)
+    result = cost_distance(os.path.join(dataPath, 'projekty', search_id), id, person_type_id)
+    return result
 
 def getRadialAlpha(i, KVADRANT):
     """Returns angle based on quandrante"""
@@ -535,7 +539,23 @@ def saveRegion(id, search_id):
     with open(os.path.join(dataPath, id + "_sectors.geojson"), "w") as out:
         json.dump(data, out)
 
-def move_from_null(PLUGIN_PATH):
+def move_from_null(data_path):
+
+    PLUGIN_PATH=pluginPath
+    # DATA
+    # define GRASS DATABASE
+    # add your path to grassdata (GRASS GIS database) directory
+    gisdb = os.path.join(data_path, 'grassdata')
+    # the following path is the default path on MS Windows
+    # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
+
+    # specify (existing) location and mapset
+    location = "jtsk"
+    mapset   = "PERMANENT"
+
+    init_grass(gisdb, location, mapset)
+    import grass.script as gscript
+
     print("Moving from null")
     # if the min value is null
     print(gscript.read_command('r.mapcalc', expression='friction_null_rec=if(isnull(friction), 1, null())',
@@ -610,9 +630,9 @@ def cost_distance(data_path, id, person_type_id):
         MIN = float(stats['min'])
         print("MINIMUM: " + str(MIN))
         if str(MIN) == "nan":
-            move_from_null(PLUGIN_PATH)
+            move_from_null(data_path)
     except:
-        move_from_null(PLUGIN_PATH)
+        move_from_null(data_path)
 
 
     #Reads radial CSV with WKT of triangles writtent by patracdockwidget.generateRadialOnPoint
@@ -669,14 +689,19 @@ def cost_distance(data_path, id, person_type_id):
             #rules_percentage_f.write(str(MIN) + ' thru ' + str(MAX) + ' = ' + str(i) + '\n')
             if str(PREVMIN) != 'nan' and str(MIN) != 'nan':
                 rules_percentage_f.write(str(PREVMIN) + ' thru ' + str(MIN) + ' = ' + str(i) + '\n')
+            else:
+                return None
             PREVMIN = MIN
         except:
             print("Problem with category " + str(cat) + " " + str(i) + "%")
+            return None
         cat = cat + 1
 
     #Add 95% category
     if str(PREVMIN) != 'nan' and str(MAX) != 'nan':
         rules_percentage_f.write(str(PREVMIN) + ' thru ' + str(MAX) + ' = 95\n')
+    else:
+        return None
 
     #Finish reclass rules
     rules_percentage_f.write('end')
@@ -684,6 +709,8 @@ def cost_distance(data_path, id, person_type_id):
 
     #Finaly reclass whole cost layer based on min and max values for each ring
     print(gscript.read_command('r.reclass', input='cost' + PLACE_ID, output='distances' + PLACE_ID + '_costed', rules=os.path.join(PLUGIN_PATH, 'grass', 'rules_percentage.txt'), overwrite=True))
+
+    return "CALCULATED"
 
 def fixUt(ut):
     if ut == 0:
@@ -1028,7 +1055,7 @@ def report_export(id):
 
     report = {
         "id": ID,
-        "output": {
+        "report": {
             "surfaces": surfaces,
             "units_areas": units_areas,
             "units_areas_alternatives": units_areas_alternatives,

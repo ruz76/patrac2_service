@@ -11,9 +11,9 @@ dataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data\service\d
 patracDataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data"
 
 # Linux
-# grass7bin_lin = 'grass78'
-# logsPath = "/data/patracdata/service/logs"
-# dataPath = "/data/patracdata/service/data"
-# patracDataPath = "/data/patracdata"
+grass7bin_lin = 'grass78'
+logsPath = "/data/patracdata/service/logs"
+dataPath = "/data/patracdata/service/data"
+patracDataPath = "/data/patracdata"
 
 
