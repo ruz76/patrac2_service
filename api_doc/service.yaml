@@ -480,7 +480,7 @@ components:
           type: array
           items:
             type: integer
-        units_time:
+        units_times:
           description: Čas pátrání pro každý typ jednotky.
           type: array
           items:
