@@ -454,6 +454,28 @@ paths:
                     type: string
                 example:
                   errorMessage: "Illegal inputs."
+
+  /version:
+    get:
+      summary: Vrátí verzi služby.
+      description: Vrátí verzi služby v podobě data posledního sestavení.
+      operationId: version
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  version:
+                    description: Verze služby
+                    type: string
+                    example: "2024-10-04"
+                required:
+                  - version
+                example:
+                  status: "2024-10-04"
+
 components:
   schemas:
     Report:

@@ -144,6 +144,37 @@ def create_search():
     else:
         return get_ok_response(id, 'create_search')
 
+def check_coordinates(coords, wind_path):
+    if not os.path.exists(wind_path):
+        return [False, get_400_response('Illegal inputs. Selected search does not exists.')]
+    else:
+        try:
+            with open(wind_path) as wind:
+                lines = wind.readlines()
+                # north:      -975000
+                # south:      -1065000
+                # east:       -585000
+                # west:       -690000
+                for line in lines:
+                    if line.startswith('north:'):
+                        north = float(line.split(':')[1].strip())
+                    if line.startswith('south:'):
+                        south = float(line.split(':')[1].strip())
+                    if line.startswith('east:'):
+                        east = float(line.split(':')[1].strip())
+                    if line.startswith('west:'):
+                        west = float(line.split(':')[1].strip())
+            for coord in coords:
+                print(coord)
+                print(west, east, south, north)
+                if coord[0] < west + 100 or coord[0] > east - 100:
+                    return [False, '']
+                if coord[1] < south + 100 or coord[1] > north - 100:
+                    return [False, '']
+        except:
+            return [False, get_400_response('The selected search is corrupted. Can not compute.')]
+        return [True, 'Coordinates are inside']
+
 @app.route("/calculate_sectors", methods=['POST'])
 def calculate_sectors():
     content = request.get_json(silent=True)
@@ -169,8 +200,24 @@ def calculate_sectors():
             if epsg != 5514:
                 coords = []
                 for coord in content['coordinates']:
+                    try:
+                        x = float(coord[0])
+                        y = float(coord[1])
+                    except:
+                        return get_400_response('Illegal inputs. Coordinates ' + str(coord[0]) + ' ' + str(coord[1]) + ' are not float numbers.')
                     xy = transform_coordinates_to_5514(coord[0], coord[1], epsg)
                     coords.append([xy[0], xy[1]])
+            wind_path = os.path.join(serviceStoragePath, "data", "projekty", content['search_id'], "grassdata", "jtsk", "PERMANENT", "WIND")
+            if not os.path.exists(wind_path):
+                return get_400_response('Illegal inputs. Selected search_id ' + str(content['search_id']) + ' does not exists.')
+            else:
+                coordinates_status = check_coordinates(coords, wind_path)
+                if not coordinates_status[0]:
+                    if coordinates_status[1] == '':
+                        return get_400_response('Illegal inputs. One of the coordinates is out of the search area.')
+                    else:
+                        return coordinates_status[1]
+
             thread = Thread(target=get_sectors_grass, args=(id, content['search_id'], coords, content['person_type'], content['percentage'],))
             thread.daemon = True
             thread.start()
@@ -278,6 +325,12 @@ def delete_sector():
     else:
         return get_400_response('Illegal inputs.')
 
+@app.route("/version", methods=['GET'])
+def version():
+    resp = Response(response=json.dumps({"version": "2024-10-04"}),
+                    status=200,
+                    mimetype="application/json")
+    return resp
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
