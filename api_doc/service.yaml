@@ -545,7 +545,7 @@ paths:
                   search_path:
                     description: |
                       Seznam souřadnic cesty.
-                      Je vrácen v případě, že status je alespoň jedna alternativa vypočítána.
+                      Je vrácen v případě, že status je PARTIAL nebo DONE a alespoň jedna alternativa vypočítána.
                       Ukázka je v path_sample.json
                     type: object
                 required:

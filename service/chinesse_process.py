@@ -18,6 +18,7 @@ from shapely.geometry import mapping, shape
 from shapely.ops import polygonize
 from shapely.geometry import Point
 from operator import itemgetter, attrgetter
+from config import *
 
 QGIS_RUN=True
 if QGIS_RUN:
@@ -28,6 +29,10 @@ if QGIS_RUN:
     from qgis.gui import *
 
 _NX_BELOW_2_DOT_1 = False
+
+def logInfo(message, ID):
+    with open(os.path.join(logsPath, ID + ".log"), "a") as log:
+        log.write(message)
 
 def pairs(lst, circular=False):
     """
@@ -294,22 +299,22 @@ def single_chinese_postman_path(graph):
 
     return eulerian_graph, nodes
 
-def run_query(gpkg_ds, query):
+def run_query(gpkg_path, query):
     # based on https://svn.osgeo.org/gdal/trunk/autotest/ogr/ogr_gpkg.py
 
-    # gpkg_ds = ogr.Open(gpkg_path, update=1)
+    gpkg_ds = ogr.Open(gpkg_path, update=1)
     gpkg_ds.ExecuteSQL(query)
     gpkg_ds.ExecuteSQL('VACUUM')
-    # gpkg_ds = None
+    gpkg_ds = None
 
-def run_queries(gpkg_ds, queries):
+def run_queries(gpkg_path, queries):
     # based on https://svn.osgeo.org/gdal/trunk/autotest/ogr/ogr_gpkg.py
 
-    # gpkg_ds = ogr.Open(gpkg_path, update=1)
+    gpkg_ds = ogr.Open(gpkg_path, update=1)
     for query in queries:
         gpkg_ds.ExecuteSQL(query)
     gpkg_ds.ExecuteSQL('VACUUM')
-    # gpkg_ds = None
+    gpkg_ds = None
 
 def get_table_data(gpkg_path, table_name, fields):
     features_output = []
@@ -320,6 +325,19 @@ def get_table_data(gpkg_path, table_name, fields):
                 feature_output[field] = feature['properties'][field]
             features_output.append(feature_output)
     return features_output
+
+def get_points_on_path(gpkg_path, table_name):
+    print('Before fiona open')
+    print(fiona.__version__)
+    output_coords_sequence = []
+    with fiona.open(gpkg_path, layer=table_name) as layer:
+        for feature in layer:
+            geometry = shape(feature["geometry"])
+            coords = geometry.coords
+            for coord in coords:
+                print(coord)
+                output_coords_sequence.append([coord[0], coord[1]])
+    return output_coords_sequence
 
 def save_layer_as_geojson(gpkg_path, table_name, fields, output_path):
     features_output = []
@@ -847,25 +865,25 @@ def get_clusters(config, data):
     return clusters
 
 
-def prepare_data_for_graph_based_on_polygon(config, gpkg_ds):
+def prepare_data_for_graph_based_on_polygon(config):
 
     # TODO use grades as well
-    run_query(gpkg_ds, 'delete from ways_for_sectors_export')
+    run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
     sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005))"
     # print(sql)
-    run_query(gpkg_ds, sql)
+    run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
 
     return output_data
 
-def prepare_data_for_graph(config, sectors_list, grades, gpkg_ds):
+def prepare_data_for_graph(config, sectors_list, grades):
     sectors = array_to_in_param(sectors_list)
 
-    run_query(gpkg_ds, 'delete from ways_for_sectors_export')
+    run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
     # sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways join ways_for_sectors wfs on (grade in (" + grades + ") and id IN (" + sectors + ") and ways.gid = wfs.gid)"
     # print(sql)
     sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways join ways_for_sectors wfs on (grade in (" + grades + ") and ways.gid = wfs.gid)"
-    run_query(gpkg_ds, sql)
+    run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
 
     return output_data
@@ -944,7 +962,7 @@ def build_graph(features, used_edges):
 
     return graph
 
-def solve_graph(graph, config, name, gpkg_ds):
+def solve_graph(graph, config, name):
     components = graph_components(graph)
     # for component in components:
     #     print(component)
@@ -976,22 +994,30 @@ def solve_graph(graph, config, name, gpkg_ds):
 
         print(info)
 
-        create_layer(config, graph, nodes, name + '_' + str(component_id), gpkg_ds)
+        create_layer(config, graph, nodes, name + '_' + str(component_id))
+        with open(os.path.join(config['output_dir'], name + '_' + str(component_id) + '_nodes_sequence.json'), 'w') as f:
+            json.dump(nodes, f)
+        points = get_points_on_path(config['gpkg_path'], 'chpostman_path_export')
 
         output = {
             "id": name + '_' + str(component_id),
-            "total_roads": in_length,
-            "total_path": path_length,
-            "duplicate_length": duplicate_length
+            "total_roads": round(in_length * 1000),
+            "total_path": round(path_length * 1000),
+            "duplicate_length": round(duplicate_length * 1000),
+            "coordinates": points
         }
 
         outputs.append(output)
         component_id += 1
 
+    search_path = {
+
+    }
+
     return outputs
 
-def create_layer(config, graph, nodes, name, gpkg_ds):
-    run_query(gpkg_ds, 'delete from chpostman_path')
+def create_layer(config, graph, nodes, name):
+    run_query(config['gpkg_path'], 'delete from chpostman_path')
     pos = 0
     ts = datetime.now()
     queries = []
@@ -1006,9 +1032,9 @@ def create_layer(config, graph, nodes, name, gpkg_ds):
         queries.append("insert into chpostman_path (gid, ord, ts) values (" + data['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "')")
         # print(f'Hrana mezi {u} a {v} má váhu {data["weight"]}')
 
-    run_queries(gpkg_ds, queries)
-    run_query(gpkg_ds, 'delete from chpostman_path_export')
-    run_query(gpkg_ds, "insert into chpostman_path_export (gid, ord, ts, the_geom) select ch.gid, ch.ord, ch.ts, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid)")
+    run_queries(config['gpkg_path'], queries)
+    run_query(config['gpkg_path'], 'delete from chpostman_path_export')
+    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, the_geom) select ch.gid, ch.ord, ch.ts, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid)")
 
     print('Before export')
 
@@ -1076,13 +1102,13 @@ def test_me():
     solve_area(config)
 
 
-def solve_one_part(start_node, end_node, config, graph_data_input, gpkg_ds):
+def solve_one_part(start_node, end_node, config, graph_data_input):
     if os.path.exists(os.path.join(config['output_dir'], end_node + '_graph.json')):
         # Deserializace z JSON
         with open(os.path.join(config['output_dir'], end_node + '_graph.json'), 'r') as f:
             data = json.load(f)
         G_union = nx.node_link_graph(data)
-        graph_solution = solve_graph(G_union, config, 'test_' + str(end_node), gpkg_ds)
+        graph_solution = solve_graph(G_union, config, 'test_' + str(end_node))
         print(graph_solution)
 
     else:
@@ -1176,7 +1202,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input, gpkg_ds):
         # # Výpis hran nového grafu po přidání napojených hran
         # print(f'Hrany v novém grafu po přidání napojených hran: {H.edges(data=True)}')
 
-        create_layer(config, H, H.nodes, 'test_ring_only_' + str(start_node), gpkg_ds)
+        create_layer(config, H, H.nodes, 'test_ring_only_' + str(start_node))
         print('A')
         get_ring_polygon(config)
         graph_data_input_missing_edges = prepare_data_for_graph_based_on_polygon(config)
@@ -1191,7 +1217,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input, gpkg_ds):
 
     return [graph_solution, G_union]
 
-def get_ring_polygon(config, gpkg_ds):
+def get_ring_polygon(config):
     with fiona.open(config['gpkg_path'], layer='chpostman_path_export') as layer:
         lines = []
         for feature in layer:
@@ -1240,7 +1266,7 @@ def get_ring_polygon(config, gpkg_ds):
     srs.ImportFromEPSG(4326)
 
     # Otevření souboru GeoPackage
-    # gpkg_ds = ogr.Open(gpkg_path, update=1)
+    gpkg_ds = ogr.Open(gpkg_path, update=1)
     if not gpkg_ds:
         raise ValueError(f"Could not open {gpkg_path}")
 
@@ -1272,7 +1298,7 @@ def get_ring_polygon(config, gpkg_ds):
 
     # Uvolnění datasetu
     gpkg_ds.ExecuteSQL('VACUUM')
-    # gpkg_ds = None
+    gpkg_ds = None
 
     print(f'Polygony byly úspěšně uloženy do vrstvy {layer_name} v souboru {gpkg_path}.')
 
@@ -1395,25 +1421,30 @@ def find_path_based_on_shortest_path(id, search_id, config):
     # "start_point": [15.017469, 49.433281]
     # "source" IN (3609, 6932, 726, 6305, 712, 5028, 5841, 5788)
 
-    gpkg_ds = ogr.Open(config['gpkg_path'], update=1)
-
     grades = '0, 1, 2, 3, 4, 5, 6'
     # print(grades)
-    graph_data_input = prepare_data_for_graph(config, config['sectors'], grades, gpkg_ds)
+    graph_data_input = prepare_data_for_graph(config, config['sectors'], grades)
+    logInfo("GRAPH DATA PREPARED\n5\n", id)
     graph = build_graph(graph_data_input, [])
+    logInfo("GRAPH BUILT\n10\n", id)
     nodes_with_degree_one = [node for node, degree in dict(graph.degree()).items() if degree == 1]
     # print("Uzly, které mají spojení pouze na jeden další uzel:", nodes_with_degree_one)
-
+    logInfo("ISOLATED NODES FOUND\n11\n", id)
     points_to_use = find_points(config, nodes_with_degree_one)
     start_point = points_to_use[0]
     end_points = points_to_use[1]
     solutions = []
     solved_graphs = []
+    logInfo("POINTS ON GRAPH FOUND\n15\n", id)
     for i in range(len(end_points)):
         pos_end_points = 0
+        # We take only first 10 points
+        step = round(70 / 10)
         for end_point in end_points[i]:
-            solution_results = solve_one_part(str(start_point[0]), str(end_point['id']), config, graph_data_input, gpkg_ds)
+            solution_results = solve_one_part(str(start_point[0]), str(end_point['id']), config, graph_data_input)
             if solution_results is not None:
+                percent = 15 + (pos_end_points + 1) * step
+                logInfo("SOLVED PATH " + str(pos_end_points) + " FROM " + str(len(end_points[i])) + " POINTS\n" + str(percent) + "\n", id)
                 solutions.append(solution_results[0])
                 solved_graphs.append(solution_results[1])
                 # Serializace do JSON
@@ -1427,6 +1458,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
             if pos_end_points > 10:
                 break
 
+    logInfo("ALL ALTERNATIVE PATHS HAS BEEN SOLVED\n90\n", id)
     for solution in solutions:
         print(solution)
 
@@ -1457,108 +1489,4 @@ def find_path_based_on_shortest_path(id, search_id, config):
                 #     print("Graf G2 je podgrafem grafu G1")
                 #     print(solutions[j][0]['id'] + " " + solutions[i][0]['id'])
 
-    gpkg_ds = None
-
-    # with open('g.json', 'w') as go:
-    #     go.write(json.dumps(graph_data_input))
-
-    # solve_one_part('1138', '3908', config, graph_data_input)
-    # solve_one_part('1138', '6465', config, graph_data_input)
-    # solve_one_part('1138', '1112', config, graph_data_input)
-    # solve_one_part('1138', '6489', config, graph_data_input)
-    # solve_one_part('1138', '1134', config, graph_data_input)
-    # solve_one_part('1138', '1132', config, graph_data_input)
-
-    # solve_one_part('1138', '5915', config, graph_data_input)
-    # solve_one_part('1138', '3756', config, graph_data_input)
-    # solve_one_part('1138', '3498', config, graph_data_input)
-    # solve_one_part('1138', '4022', config, graph_data_input)
-    # solve_one_part('1138', '1126', config, graph_data_input)
-    # solve_one_part('1138', '6466', config, graph_data_input)
-    # solve_one_part('1138', '771', config, graph_data_input)
-    # solve_one_part('1138', '4018', config, graph_data_input)
-
-    # nx.shortest_path(graph, source, target, weight)
-    # components = graph_components(graph)
-    # for component in components:
-    #     print(component)
-    #     for item in component:
-    #         print(dir(item))
-
-    # edges = graph.edges(data=True)
-    # for edge in edges:
-    #     print(edge)
-    #
-    # nodes = list(graph.nodes)
-    # random_nodes = random.sample(nodes, 2)
-
-    # Odstranění hran, které tvoří nalezenou trasu, z grafu
-    # Toto je část, kde vycházíme z toho, že z endpointu vede ještě jedna cesta, ale asi je to blbost.
-    # for i in range(len(shortest_path) - 1):
-    #     graph.remove_edge(shortest_path[i], shortest_path[i + 1])
-    #
-    # # Výpočet nejkratší trasy mezi těmito uzly
-    # start_node = '6465'
-    # end_node = '1138'
-    # shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
-    # shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
-    #
-    # # Výpis výsledků
-    # print(f'Náhodně vybrané uzly: {start_node} a {end_node}')
-    # print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
-    # print(f'Délka nejkratší trasy je: {shortest_path_length}')
-
-    # New endpoint
-    # graph = build_graph(graph_data_input, [])
-    #
-    # # Výpočet nejkratší trasy mezi těmito uzly
-    # start_node = '1138'
-    # end_node = '1112'
-    # shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
-    # shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
-    #
-    # # Výpis výsledků
-    # print(f'Náhodně vybrané uzly: {start_node} a {end_node}')
-    # print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
-    # print(f'Délka nejkratší trasy je: {shortest_path_length}')
-    #
-    # # Odstranění hran, které tvoří nalezenou trasu, z grafu
-    # for i in range(len(shortest_path) - 1):
-    #     graph.remove_edge(shortest_path[i], shortest_path[i + 1])
-    #
-    # # Výpočet nejkratší trasy mezi těmito uzly
-    # start_node = '1112'
-    # end_node = '1138'
-    # shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
-    # shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
-    #
-    # # Výpis výsledků
-    # print(f'Náhodně vybrané uzly: {start_node} a {end_node}')
-    # print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
-    # print(f'Délka nejkratší trasy je: {shortest_path_length}')
-
-# test_me()
-
-# config = {
-#     "log_level": "debug",
-#     "gpkg_path": "/home/jencek/Documents/Projekty/PCR/test_data_eustach/test_short.gpkg",
-#     "output_dir": "/tmp/",
-#     "covers": {
-#         "handler": 12,
-#         "pedestrian": 12,
-#         "rider": 16,
-#         "quad_bike": 20
-#     },
-#     "searchers": {
-#         "handler": 1,
-#         "pedestrian": 1,
-#         "rider": 2,
-#         "quad_bike": 3
-#     },
-#     "sectors": [142442, 142444, 143254, 143263, 143884, 143941, 145390, 145401, 145405, 145408, 145446, 145448, 145453, 145464, 145465, 145468, 145525, 145526, 145529, 145547, 145555, 145556, 145557, 145558, 145603, 660753, 660758, 660783, 660800, 660824, 660832, 660837, 660838, 660840, 660843, 664917, 673397, 674517, 674663, 674668, 674669, 674679, 674682, 674693, 674694, 674695, 674696, 674697, 674700, 674704, 674706, 674707, 674712, 674715, 674734, 674736, 674742, 674743, 674744, 674746, 674748, 674750, 674753, 674755, 674762, 674763, 674764, 674767, 674769, 674770, 674771, 674773, 674778, 674779, 674780, 674781, 674783, 674784, 674790, 674795, 674796, 674797, 674798, 674800, 674806, 674813, 674836, 674842, 674844, 674940, 674941, 674943, 674944, 674946, 674952, 674955, 674958, 674959, 674961, 674962, 674963, 674967, 674971, 674973, 674975, 674977, 674983, 675011, 675012, 675919, 676991, 688010, 145350, 145359, 145392, 145418, 145457, 145462, 145463, 145489, 145575, 668767, 674411, 674520, 674533, 674598, 674609, 674667, 674671, 674676, 674683, 674688, 674689, 674699, 674709, 674710, 674716, 674717, 674722, 674725, 674726, 674727, 674745, 674815, 674816, 674817, 674819, 674822, 674826, 674828, 674831, 674832, 674833, 674838, 674843, 674846, 674850, 674866, 674884, 674887, 674897, 674899, 674913, 674914, 674916, 674925, 674926, 674927, 674929, 674931, 674933, 674934, 674937, 674982, 674984, 674989, 674990, 674991, 674993, 674997, 675000, 675001, 675003, 675004, 675008, 675016, 675017, 687754, 687968, 765584, 674751, 142598, 142602, 142656, 142671, 142687, 145458, 654010, 657634, 657673, 657714, 657811, 659980, 660699, 660847, 660856, 663634, 663636, 663639, 663640, 663643, 663660, 663671, 674935, 647978, 674851, 144824, 144828, 144935, 145388, 145427, 145480, 145535, 145539, 145565, 647941, 647949, 671820, 672039, 672041, 672042, 672106, 674662, 674670, 674687, 674692, 674698, 674703, 674733, 674810, 674812, 674814, 685157, 687920, 143201, 144025, 144057, 145373, 145387, 145399, 145404, 145409, 145412, 145444, 145445, 145454, 145455, 145456, 145459, 145528, 145537, 145540, 145542, 145548, 145566, 145598, 145602, 672057, 674446, 674449, 674483, 674600, 674655, 674680, 674684, 674685, 674701, 674702, 674705, 674708, 674718, 674721, 674728, 674731, 674738, 674741, 674747, 674752, 674756, 674757, 674758, 674759, 674760, 674761, 674768, 674777, 674785, 674786, 674787, 674788, 674789, 674792, 674793, 674794, 674799, 674804, 674805, 674809, 674947, 674948, 674949, 674950, 674956, 674957, 674960, 674964, 674968, 674970, 674978, 677001, 648027, 142449, 142494, 663642, 140540, 140545, 142429, 145604, 660756, 660762, 660763, 660778, 660818, 674976, 674980, 674987, 674988, 142668, 143594, 143832, 143838, 143974, 145200, 145372, 145415, 145416, 145417, 145420, 145422, 145441, 145443, 145466, 145477, 145530, 145531, 145532, 145538, 145562, 145569, 145579, 145590, 145597, 645978, 657664, 660685, 660698, 660737, 660761, 663628, 663631, 663633, 663650, 663674, 665246, 668144, 673938, 674280, 674345, 674402, 674420, 674508, 674519, 674636, 674646, 674660, 674681, 674686, 674691, 674711, 674713, 674714, 674719, 674720, 674723, 674724, 674729, 674730, 674735, 674739, 674754, 674766, 674775, 674782, 674791, 674802, 674808, 674811, 674820, 674821, 674823, 674824, 674825, 674827, 674829, 674830, 674834, 674840, 674841, 674845, 674847, 674853, 674855, 674881, 674896, 674904, 674915, 674923, 674928, 674932, 674938, 674945, 674951, 674985, 674995, 674996, 674998, 674999, 675002, 675005, 675006, 675007, 675009, 675010, 675013, 675014, 675015, 681831, 683216, 683221, 765585, 144826, 145389, 672034, 672072, 674732, 674737, 674749, 687932, 765536],
-#     "start_point": [15.0339242, 49.340751],
-#     "end_point": [15.0677249, 49.3256828]
-# }
-
-# find_path_based_on_shortest_path()
-# export_linies_into_xy_csv("/tmp/test_6642_0.shp")
+    logInfo("DONE\n100\n", id)
