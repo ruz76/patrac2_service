@@ -1010,10 +1010,6 @@ def solve_graph(graph, config, name):
         outputs.append(output)
         component_id += 1
 
-    search_path = {
-
-    }
-
     return outputs
 
 def create_layer(config, graph, nodes, name):
@@ -1344,12 +1340,12 @@ def find_points(config, nodes_with_degree_one):
                 # point1 = Point(x1, y1)
                 cur_distance = point.distance(point_to_check)
                 if cur_distance < diff_x and feature['properties']['source'] not in nodes_with_degree_one:
-                    if {"id": feature['properties']['source'], "distance": cur_distance} not in closets_points[pos]:
-                        closets_points[pos].append({"id": feature['properties']['source'], "distance": cur_distance})
+                    if {"id": feature['properties']['source'], "distance": cur_distance, "x": point_to_check.x, "y": point_to_check.y} not in closets_points[pos]:
+                        closets_points[pos].append({"id": feature['properties']['source'], "distance": cur_distance, "x": point_to_check.x, "y": point_to_check.y})
                 pos += 1
             cur_distance = start_point_point.distance(point_to_check)
             if cur_distance < start_point[1]:
-                start_point = [feature['properties']['source'], cur_distance]
+                start_point = [feature['properties']['source'], cur_distance, start_point_point.x, start_point_point.y]
 
     # print(start_point)
     for key in closets_points:
@@ -1445,17 +1441,28 @@ def find_path_based_on_shortest_path(id, search_id, config):
             if solution_results is not None:
                 percent = 15 + (pos_end_points + 1) * step
                 logInfo("SOLVED PATH " + str(pos_end_points) + " FROM " + str(len(end_points[i])) + " POINTS\n" + str(percent) + "\n", id)
-                solutions.append(solution_results[0])
+                solution = {
+                    "start_point_network": {
+                        "id": start_point[0],
+                        "coordinates": [start_point[2], start_point[3]]
+                    },
+                    "end_point_network": {
+                        "id": end_point['id'],
+                        "coordinates": [end_point['x'], end_point['y']]
+                    },
+                    "rings": solution_results[0]
+                }
+                solutions.append(solution)
                 solved_graphs.append(solution_results[1])
                 # Serializace do JSON
                 data = nx.node_link_data(solution_results[1])  # Převede graf do formátu pro serializaci
                 with open(os.path.join(config['output_dir'], str(end_point['id']) + '_graph.json'), 'w') as f:
                     json.dump(data, f)
                 with open(os.path.join(config['output_dir'], str(end_point['id']) + '_solution.json'), 'w') as f:
-                    json.dump(solution_results[0], f)
+                    json.dump(solution, f)
                 # break
             pos_end_points += 1
-            if pos_end_points > 10:
+            if pos_end_points > 9:
                 break
 
     logInfo("ALL ALTERNATIVE PATHS HAS BEEN SOLVED\n90\n", id)
@@ -1480,10 +1487,10 @@ def find_path_based_on_shortest_path(id, search_id, config):
                 #     print("Graf G2 je podgrafem grafu G1")
                 #     print(solutions[pos][0]['id'] + " " + solutions[pos2][0]['id'])
                 if are_graphs_identical(solved_graphs[i], solved_graphs[j]):
-                    print("Graf " + solutions[i][0]['id'] + " je stejný jako graf " + solutions[j][0]['id'])
+                    print("Graf " + solutions[i]['rings'][0]['id'] + " je stejný jako graf " + solutions[j]['rings'][0]['id'])
                 else:
                     if is_subgraph(solved_graphs[i], solved_graphs[j]):
-                        print("Graf " + solutions[i][0]['id'] + " je podgrafem grafu " + solutions[j][0]['id'])
+                        print("Graf " + solutions[i]['rings'][0]['id'] + " je podgrafem grafu " + solutions[j]['rings'][0]['id'])
 
                 # if is_subgraph(solved_graphs[j], solved_graphs[i]):
                 #     print("Graf G2 je podgrafem grafu G1")
