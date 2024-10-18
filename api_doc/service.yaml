@@ -520,7 +520,7 @@ paths:
                 - coordinates
             example:
               search_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
-              person_type: "handler"
+              unit_type: "undefined"
               coordinates: [ [ 15.153, 49.991 ], [ 15.1536, 49.815 ] ]
       responses:
         "200":

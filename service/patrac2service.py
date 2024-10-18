@@ -53,12 +53,15 @@ def get_ok_response(id, type):
     print(progress)
     status = 'PROCESSING'
     sectors = None
+    search_path = None
     if progress == 100:
         status = 'DONE'
         if type == 'calculate_sectors':
             sectors = get_sectors_to_return(id)
     if progress == -1:
         status = 'ERROR'
+    if progress > 0 and type == 'calculate_path_search':
+        search_path = get_paths_to_return(id)
 
     ret = {
         "status": status,
@@ -72,7 +75,13 @@ def get_ok_response(id, type):
         ret["sectors"] = sectors
     else:
         if progress == 100 and type == 'calculate_sectors':
-            ret["status"] = 'ERROR'
+            ret["status"] = {"status": "ERROR"}
+
+    if search_path is not None:
+        ret["search_path"] = search_path
+    else:
+        if progress == 100 and type == 'calculate_path_search':
+            ret["search_path"] = {"status": "ERROR"}
 
     resp = Response(response=json.dumps(ret),
                     status=200,
@@ -335,6 +344,8 @@ def calculate_path_search():
                 }
             if not os.path.exists(config['output_dir']):
                 os.makedirs(config['output_dir'])
+            with open(os.path.join(config['output_dir'], "config.json"), "w") as config_out:
+                config_out.write(json.dumps(config))
             # "start_point": [15.0339242, 49.340751],
             # "end_point": [15.0677249, 49.3256828]
             thread = Thread(target=find_path_based_on_shortest_path, args=(id, content['search_id'], config, ))

@@ -999,11 +999,21 @@ def solve_graph(graph, config, name):
             json.dump(nodes, f)
         points = get_points_on_path(config['gpkg_path'], 'chpostman_path_export')
 
+        # TODO
+        suggested_unit_types = []
+        if path_length > 18:
+            suggested_unit_types = ["quad_bike"]
+        if path_length < 12:
+            suggested_unit_types = ["pedestrian", "handler", "horse_rider"]
+        if 12 > path_length <= 18:
+            suggested_unit_types = ["horse_rider", "handler", "quad_bike"]
+
         output = {
             "id": name + '_' + str(component_id),
             "total_roads": round(in_length * 1000),
             "total_path": round(path_length * 1000),
             "duplicate_length": round(duplicate_length * 1000),
+            "suggested_unit_types": suggested_unit_types,
             "coordinates": points
         }
 

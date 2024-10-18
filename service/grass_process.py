@@ -5,6 +5,7 @@ import json
 import proc.operations as grass_operations
 from config import *
 
+
 def copyTemplate(NEW_PROJECT_PATH, NAMESAFE, region):
     TEMPLATES_PATH = os.path.join(pluginPath, "templates")
     if not os.path.isdir(NEW_PROJECT_PATH):
@@ -59,11 +60,13 @@ def copyTemplate(NEW_PROJECT_PATH, NAMESAFE, region):
         for file in glob(os.path.join(TEMPLATES_PATH, "grassdata", "wgs84", "PERMANENT", "*")):
             copy(file, os.path.join(NEW_PROJECT_PATH, "grassdata", "wgs84", "PERMANENT"))
 
+
 def create_project_grass(id, xmin, ymin, xmax, ymax, region):
     KRAJ_DATA_PATH = os.path.join(dataPath, "kraje", region)
     NEW_PROJECT_PATH = os.path.join(serviceDataPath, "projekty", id)
     copyTemplate(NEW_PROJECT_PATH, id, region)
     grass_operations.export(KRAJ_DATA_PATH, pluginPath, xmin, ymin, xmax, ymax, NEW_PROJECT_PATH, id)
+
 
 def get_sectors_grass(id, search_id, coordinates, person_type, percentage):
     with open(os.path.join(serviceDataPath, id + "_coords.json"), "w") as c:
@@ -78,13 +81,39 @@ def get_sectors_to_return(id):
     else:
         return None
 
+
+def get_paths_to_return(id):
+    if os.path.exists(os.path.join(serviceDataPath, id, "config.json")):
+        output = {}
+        with open(os.path.join(serviceDataPath, id, "config.json")) as s:
+            config = json.load(s)
+            output["start_point_user"] = config["start_point"]
+            output["end_point_user"] = config["end_point"]
+            output["search_path_alternatives"] = []
+
+        directory = os.fsencode(os.path.join(serviceDataPath, id))
+
+        for file in os.listdir(directory):
+            filename = os.fsdecode(file)
+            if filename.endswith("solution.json"):
+                with open(os.path.join(serviceDataPath, id, filename)) as s:
+                    solution = json.load(s)
+                    output["search_path_alternatives"].append(solution)
+
+        return output
+    else:
+        return None
+
+
 def get_report_grass(id):
     grass_operations.report_export(id)
     with open(os.path.join(serviceDataPath, id + "_report.json")) as s:
         return json.load(s)
 
+
 def create_sector_grass(search_id):
     grass_operations.create_sector(os.path.join(serviceDataPath, "projekty", search_id), search_id)
+
 
 def delete_sector_grass(sector_id, search_id):
     grass_operations.delete_sector(os.path.join(serviceDataPath, "projekty", search_id), search_id, sector_id)
