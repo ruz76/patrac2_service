@@ -323,7 +323,7 @@ def calculate_path_search():
                     coords.append([xy[0], xy[1]])
             config = {
                     "log_level": "debug",
-                    "gpkg_path": "/home/jencek/Documents/Projekty/PCR/test_data_eustach/test_short.gpkg",
+                    "gpkg_path": os.path.join(serviceDataPath, "projekty", content["search_id"], "line_search", "data.gpkg"),
                     "output_dir": os.path.join(serviceDataPath, id),
                     "covers": {
                         "handler": 12,
