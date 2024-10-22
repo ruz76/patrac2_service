@@ -1421,6 +1421,12 @@ def export_linies_into_xy_csv(shp_path):
                     print(coord)
                     out_csv.write(str(coord[0]) + ',' + str(coord[1]) + '\n')
 
+def graph_exists(solved_graphs, solved_graph):
+    for i in range(len(solved_graphs)):
+        if are_graphs_identical(solved_graphs[i], solved_graph):
+            return True
+    return False
+
 def find_path_based_on_shortest_path(id, search_id, config):
 
     # "start_point": [15.1321449, 49.4054798],
@@ -1462,14 +1468,15 @@ def find_path_based_on_shortest_path(id, search_id, config):
                     },
                     "rings": solution_results[0]
                 }
-                solutions.append(solution)
-                solved_graphs.append(solution_results[1])
-                # Serializace do JSON
-                data = nx.node_link_data(solution_results[1])  # Převede graf do formátu pro serializaci
-                with open(os.path.join(config['output_dir'], str(end_point['id']) + '_graph.json'), 'w') as f:
-                    json.dump(data, f)
-                with open(os.path.join(config['output_dir'], str(end_point['id']) + '_solution.json'), 'w') as f:
-                    json.dump(solution, f)
+                if not graph_exists(solved_graphs, solution_results[1]):
+                    solutions.append(solution)
+                    solved_graphs.append(solution_results[1])
+                    # Serializace do JSON
+                    data = nx.node_link_data(solution_results[1])  # Převede graf do formátu pro serializaci
+                    with open(os.path.join(config['output_dir'], str(end_point['id']) + '_graph.json'), 'w') as f:
+                        json.dump(data, f)
+                    with open(os.path.join(config['output_dir'], str(end_point['id']) + '_solution.json'), 'w') as f:
+                        json.dump(solution, f)
                 # break
             pos_end_points += 1
             if pos_end_points > 9:
@@ -1484,26 +1491,10 @@ def find_path_based_on_shortest_path(id, search_id, config):
     for i in range(len(solved_graphs)):
         for j in range(len(solved_graphs)):
             if i != j:
-                # Tak tyto testy evidentně nefungují
-                # if nx.is_isomorphic(solved_graph, solved_graph_2):
-                #     print("Graf G1 je stejný jako graf G2")
-                #     print(solutions[pos][0]['id'] + " " + solutions[pos2][0]['id'])
-                # GM = nx.isomorphism.GraphMatcher(solved_graph, solved_graph_2)
-                # if GM.subgraph_is_isomorphic():
-                #     print("Graf G1 je podgrafem grafu G2")
-                #     print(solutions[pos][0]['id'] + " " + solutions[pos2][0]['id'])
-                # GM = nx.isomorphism.GraphMatcher(solved_graph_2, solved_graph)
-                # if GM.subgraph_is_isomorphic():
-                #     print("Graf G2 je podgrafem grafu G1")
-                #     print(solutions[pos][0]['id'] + " " + solutions[pos2][0]['id'])
                 if are_graphs_identical(solved_graphs[i], solved_graphs[j]):
                     print("Graf " + solutions[i]['rings'][0]['id'] + " je stejný jako graf " + solutions[j]['rings'][0]['id'])
                 else:
                     if is_subgraph(solved_graphs[i], solved_graphs[j]):
                         print("Graf " + solutions[i]['rings'][0]['id'] + " je podgrafem grafu " + solutions[j]['rings'][0]['id'])
-
-                # if is_subgraph(solved_graphs[j], solved_graphs[i]):
-                #     print("Graf G2 je podgrafem grafu G1")
-                #     print(solutions[j][0]['id'] + " " + solutions[i][0]['id'])
 
     logInfo("DONE\n100\n", id)
