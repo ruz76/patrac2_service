@@ -882,7 +882,7 @@ def prepare_data_for_graph(config, sectors_list, grades):
     run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
     # sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways join ways_for_sectors wfs on (grade in (" + grades + ") and id IN (" + sectors + ") and ways.gid = wfs.gid)"
     # print(sql)
-    sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways join ways_for_sectors wfs on (grade in (" + grades + ") and ways.gid = wfs.gid)"
+    sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways where grade in (" + grades + ")"
     run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
 
@@ -1436,6 +1436,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
     grades = '0, 1, 2, 3, 4, 5, 6'
     # print(grades)
     graph_data_input = prepare_data_for_graph(config, config['sectors'], grades)
+    print(graph_data_input)
     logInfo("GRAPH DATA PREPARED\n5\n", id)
     graph = build_graph(graph_data_input, [])
     logInfo("GRAPH BUILT\n10\n", id)

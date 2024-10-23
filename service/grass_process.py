@@ -4,7 +4,8 @@ from glob import glob
 import json
 import proc.operations as grass_operations
 from config import *
-
+from osgeo import gdal
+import pyproj
 
 def copyTemplate(NEW_PROJECT_PATH, NAMESAFE, region):
     TEMPLATES_PATH = os.path.join(pluginPath, "templates")
@@ -61,10 +62,40 @@ def copyTemplate(NEW_PROJECT_PATH, NAMESAFE, region):
             copy(file, os.path.join(NEW_PROJECT_PATH, "grassdata", "wgs84", "PERMANENT"))
 
 
+def transform_coordinates_to_4326(x, y, from_code):
+    from_proj = pyproj.Proj("+init=epsg:" + str(from_code))
+    to_proj = pyproj.Proj("+init=epsg:4326")
+    return pyproj.transform(from_proj, to_proj, x, y)
+
+def extract_line_search_data(source_data_path, target_data_path, xmin, ymin, xmax, ymax):
+    if os.path.exists(os.path.join(source_data_path, "line_search", "data.gpkg")) and os.path.exists(target_data_path):
+        if not os.path.exists(os.path.join(target_data_path, "line_search")):
+            os.mkdir(os.path.join(target_data_path, "line_search"))
+
+        xy_min_wgs84 = transform_coordinates_to_4326(xmin, ymin, 5514)
+        xy_max_wgs84 = transform_coordinates_to_4326(xmax, ymax, 5514)
+        bbox = (xy_min_wgs84[0], xy_min_wgs84[1], xy_max_wgs84[0], xy_max_wgs84[1])
+
+        # Otevření vstupního a výstupního souboru
+        input_file = os.path.join(source_data_path, "line_search", "data.gpkg")
+        output_file = os.path.join(target_data_path, "line_search", "data.gpkg")
+
+        # Použití VectorTranslate k výřezu dat
+        gdal.VectorTranslate(
+            output_file,
+            input_file,
+            options=gdal.VectorTranslateOptions(
+                format='GPKG',  # Formát výstupního souboru
+                spatFilter=bbox  # Prostorový filtr na základě BBOXu
+            )
+        )
+
+
 def create_project_grass(id, xmin, ymin, xmax, ymax, region):
     KRAJ_DATA_PATH = os.path.join(dataPath, "kraje", region)
     NEW_PROJECT_PATH = os.path.join(serviceDataPath, "projekty", id)
     copyTemplate(NEW_PROJECT_PATH, id, region)
+    extract_line_search_data(KRAJ_DATA_PATH, NEW_PROJECT_PATH, xmin, ymin, xmax, ymax)
     grass_operations.export(KRAJ_DATA_PATH, pluginPath, xmin, ymin, xmax, ymax, NEW_PROJECT_PATH, id)
 
 
