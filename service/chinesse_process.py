@@ -1040,7 +1040,7 @@ def create_layer(config, graph, nodes, name):
 
     run_queries(config['gpkg_path'], queries)
     run_query(config['gpkg_path'], 'delete from chpostman_path_export')
-    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, the_geom) select ch.gid, ch.ord, ch.ts, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid)")
+    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, the_geom) select ch.gid, ch.ord, ch.ts, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ord")
 
     print('Before export')
 
