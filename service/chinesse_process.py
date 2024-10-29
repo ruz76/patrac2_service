@@ -326,17 +326,67 @@ def get_table_data(gpkg_path, table_name, fields):
             features_output.append(feature_output)
     return features_output
 
+def are_on_the_same_position(coord1, coord2, tolerance):
+    # TODO maybe check the distance
+    if coord1[0] == coord2[0] and coord1[1] == coord2[1]:
+        return True
+    else:
+        return False
+
 def get_points_on_path(gpkg_path, table_name):
     print('Before fiona open')
     print(fiona.__version__)
     output_coords_sequence = []
+    pos = 0
+    coords_0 = None
     with fiona.open(gpkg_path, layer=table_name) as layer:
         for feature in layer:
             geometry = shape(feature["geometry"])
             coords = geometry.coords
-            for coord in coords:
-                print(coord)
-                output_coords_sequence.append([coord[0], coord[1]])
+            coords_fixed = coords
+            if pos == 0:
+                coords_0 = coords_fixed
+            # print(feature['properties']['ord'])
+            if pos == 1:
+                if are_on_the_same_position(coords_0[0], coords_fixed[0], 0):
+                    # The first point on line1 is at the same position as first point of the line2
+                    # So flip the line1
+                    coords_0_fixed = coords_0[::-1]
+                    coords_1_fixed = coords_fixed
+                if are_on_the_same_position(coords_0[len(coords_0) - 1], coords_fixed[0], 0):
+                    # The last point on line1 is at the same position as first point of the line2
+                    # Do not flip anything
+                    coords_0_fixed = coords_0
+                    coords_1_fixed = coords_fixed
+                if are_on_the_same_position(coords_0[0], coords_fixed[len(coords_fixed) - 1], 0):
+                    # The first point on line1 is at the same position as last point of the line2
+                    # Flip the line1
+                    coords_0_fixed = coords_0[::-1]
+                    # Flip the line2
+                    coords_1_fixed = coords_fixed[::-1]
+                if are_on_the_same_position(coords_0[len(coords_0) - 1], coords_fixed[len(coords_fixed) - 1], 0):
+                    # The last point on line1 is at the same position as last point of the line2
+                    # Do not the line1
+                    coords_0_fixed = coords_0
+                    # Flip the line2
+                    coords_1_fixed = coords_fixed[::-1]
+                for coord in coords_0_fixed:
+                    # print(coord)
+                    output_coords_sequence.append([coord[0], coord[1]])
+                for coord in coords_1_fixed:
+                    # print(coord)
+                    output_coords_sequence.append([coord[0], coord[1]])
+            if pos > 1:
+                # if feature['properties']['source_path'] != feature['properties']['target_path']:
+                #     coords_fixed = coords[::-1]
+                if not are_on_the_same_position(output_coords_sequence[len(output_coords_sequence) - 1], coords_fixed[0], 0):
+                    # The line N+1 does not have the first point on the last point of the line N
+                    # Flip the line N+1
+                    coords_fixed = coords[::-1]
+                for coord in coords_fixed:
+                    # print(coord)
+                    output_coords_sequence.append([coord[0], coord[1]])
+            pos += 1
     return output_coords_sequence
 
 def save_layer_as_geojson(gpkg_path, table_name, fields, output_path):
@@ -994,7 +1044,7 @@ def solve_graph(graph, config, name):
 
         print(info)
 
-        create_layer(config, graph, nodes, name + '_' + str(component_id))
+        create_layer(config, eulerian_graph, nodes, name + '_' + str(component_id))
         with open(os.path.join(config['output_dir'], name + '_' + str(component_id) + '_nodes_sequence.json'), 'w') as f:
             json.dump(nodes, f)
         points = get_points_on_path(config['gpkg_path'], 'chpostman_path_export')
@@ -1022,6 +1072,29 @@ def solve_graph(graph, config, name):
 
     return outputs
 
+def create_layer_for_polygon(config, graph, nodes, name, export=True):
+    run_query(config['gpkg_path'], 'delete from chpostman_path')
+    pos = 0
+    ts = datetime.now()
+    queries = []
+    for u, v in graph.edges():
+        pos += 1
+        ts = ts + timedelta(seconds=1)
+        queries.append("insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")")
+
+    run_queries(config['gpkg_path'], queries)
+    run_query(config['gpkg_path'], 'delete from chpostman_path_export')
+    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, source_path, target_path, source_way, target_way, the_geom) select ch.gid, ch.ord, ch.ts, ch.source, ch.target, w.source, w.target, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ts")
+
+    print('Before export create_layer_simple_with_export')
+
+    # Crashes when running inside QGIS, so we will do not use fiona for export in QGIS but QGIS API
+    # save_layer_as_geojson(config['gpkg_path'], 'chpostman_path_export', ['gid', 'ord', 'ts'], os.path.join(config['output_dir'], name + '.geojson'))
+    if export:
+        save_layer_as_shp(config['gpkg_path'], 'chpostman_path_export', name, os.path.join(config['output_dir'], name + '.shp'))
+
+    print('After export create_layer_simple_with_export')
+
 def create_layer(config, graph, nodes, name):
     run_query(config['gpkg_path'], 'delete from chpostman_path')
     pos = 0
@@ -1031,16 +1104,33 @@ def create_layer(config, graph, nodes, name):
     #     pos += 1
     #     ts = ts + timedelta(seconds=1)
     #     queries.append("insert into chpostman_path (gid, ord, ts) values (" + graph[u][v]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "')")
+
     # Projití všech hran a vypsání jejich vah
-    for u, v, data in graph.edges(data=True):
+    # Toto funguje blbě v tom, že jsou hrany chybně za sebou poskládány
+    # for u, v, data in graph.edges(data=True):
+    #     pos += 1
+    #     ts = ts + timedelta(seconds=1)
+    #     print(str(u) + " " + str(v))
+    #     if 'id' in data:
+    #         queries.append("insert into chpostman_path (gid, ord, ts) values (" + data['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "')")
+    #         # print(f'Hrana mezi {u} a {v} má váhu {data["weight"]}')
+
+    # Tady zase s nějakého důvodu chybí ty vnitřní cesty. Tak ty vnitřní cesty chybí i u toho předtím. teyd je chyba někde jinde.
+    for u, v in pairs(nodes, False):
         pos += 1
         ts = ts + timedelta(seconds=1)
-        queries.append("insert into chpostman_path (gid, ord, ts) values (" + data['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "')")
-        # print(f'Hrana mezi {u} a {v} má váhu {data["weight"]}')
+        print(str(u) + " " + str(v))
+        # print(v)
+        # print(graph[u][v])
+        if 0 in graph[u][v] and 'id' in graph[u][v][0]:
+            queries.append("insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v][0]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")")
+        else:
+            if 'id' in graph[u][v]:
+                queries.append("insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")")
 
     run_queries(config['gpkg_path'], queries)
     run_query(config['gpkg_path'], 'delete from chpostman_path_export')
-    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, the_geom) select ch.gid, ch.ord, ch.ts, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ord")
+    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, source_path, target_path, source_way, target_way, the_geom) select ch.gid, ch.ord, ch.ts, ch.source, ch.target, w.source, w.target, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ts")
 
     print('Before export')
 
@@ -1115,11 +1205,11 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
             data = json.load(f)
         G_union = nx.node_link_graph(data)
         graph_solution = solve_graph(G_union, config, 'test_' + str(end_node))
-        print(graph_solution)
+        # print(graph_solution)
 
     else:
         graph = build_graph(graph_data_input, [])
-        print(graph)
+        # print(graph)
         if not start_node in graph or end_node not in graph:
             if not start_node in graph:
                 print("Nod " + str(start_node) + " není v grafu")
@@ -1148,6 +1238,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
             u, v = shortest_path[i], shortest_path[i + 1]
             H.add_edge(u, v, weight=graph.get_edge_data(u, v)['weight'], id=graph.get_edge_data(u, v)['id'])
 
+        # create_layer_for_polygon(config, H, H.nodes, 'line1_' + str(start_node))
 
         # Odstranění hran, které tvoří nalezenou trasu, z grafu. Ponechání první hrany.
         for i in range(len(shortest_path) - 2):
@@ -1158,6 +1249,8 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
         start_node_orig = start_node
         start_node = end_node
         end_node = start_node_orig
+
+        print(end_node)
 
         try:
             shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
@@ -1172,44 +1265,17 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
         print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
         print(f'Délka nejkratší trasy je: {shortest_path_length}')
 
+        print(shortest_path)
         # Přidání hran z druhé nejkratší cesty
         for i in range(len(shortest_path) - 1):
             u, v = shortest_path[i], shortest_path[i + 1]
             if not H.has_edge(u, v):
                 H.add_edge(u, v, weight=graph.get_edge_data(u, v)['weight'], id=graph.get_edge_data(u, v)['id'])
+                print(str(u) + " " + str(v) + " " + str(graph.get_edge_data(u, v)['weight']) + " " + str(graph.get_edge_data(u, v)['id']))
 
-        # Výpis hran nového grafu
-        # print(f'Hrany v novém grafu: {H.edges(data=True)}')
+        create_layer_for_polygon(config, H, H.nodes, 'test_ring_only_' + str(start_node), False)
+        print(H.nodes)
 
-        # Vypsání hran z původního grafu, které jsou napojeny pouze na uzly nového grafu
-        # connected_edges = []
-        # for node in H.nodes:
-        #     # print('Node: ' + str(node))
-        #     for neighbor in graph.neighbors(node):
-        #         # print('Neighbor: ' + str(neighbor))
-        #         len_neighbors_2 = 0
-        #         for neighbor2 in graph.neighbors(neighbor):
-        #             len_neighbors_2 += 1
-        #             # print('\tNN: ' + str(neighbor2))
-        #         if len_neighbors_2 == 1:
-        #             print('\t\tIsolated: ' + str(neighbor))
-        #             if graph.has_edge(node, neighbor) and neighbor not in H.nodes:
-        #                 print('\t\t' + str(node) + ' ' + str(neighbor))
-        #                 edge_data = graph[node][neighbor]
-        #                 print(edge_data)
-        #                 connected_edges.append([node, neighbor, edge_data['weight'], edge_data['id']])
-        #                 # connected_edges.add([node, neighbor, edge_data])
-        #                 # print(edge_data)
-        #
-        # # Přidání napojených hran do nového grafu
-        # for edge in connected_edges:
-        #     H.add_edge(edge[0], edge[1], weight=edge[2], id=edge[3])
-        #
-        # # Výpis hran nového grafu po přidání napojených hran
-        # print(f'Hrany v novém grafu po přidání napojených hran: {H.edges(data=True)}')
-
-        create_layer(config, H, H.nodes, 'test_ring_only_' + str(start_node))
-        print('A')
         get_ring_polygon(config)
         graph_data_input_missing_edges = prepare_data_for_graph_based_on_polygon(config)
         graph_missing_edges = build_graph(graph_data_input_missing_edges, [])
@@ -1219,7 +1285,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
         # print(G_union)
 
         graph_solution = solve_graph(G_union, config, 'test_' + str(start_node))
-        print(graph_solution)
+        # print(graph_solution)
 
     return [graph_solution, G_union]
 
@@ -1234,6 +1300,7 @@ def get_ring_polygon(config):
         polygons = list(polygonize(lines))
         # print(polygons)
         for polygon in polygons:
+            print('POLYGON: ')
             print(polygon)
 
     # Soubor GeoPackage, do kterého chceme uložit polygony
@@ -1484,8 +1551,8 @@ def find_path_based_on_shortest_path(id, search_id, config):
                 break
 
     logInfo("ALL ALTERNATIVE PATHS HAS BEEN SOLVED\n90\n", id)
-    for solution in solutions:
-        print(solution)
+    # for solution in solutions:
+    #     print(solution)
 
     print(len(solved_graphs))
     print(len(solutions))

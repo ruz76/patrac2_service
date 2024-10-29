@@ -95,7 +95,8 @@ def create_project_grass(id, xmin, ymin, xmax, ymax, region):
     KRAJ_DATA_PATH = os.path.join(dataPath, "kraje", region)
     NEW_PROJECT_PATH = os.path.join(serviceDataPath, "projekty", id)
     copyTemplate(NEW_PROJECT_PATH, id, region)
-    extract_line_search_data(KRAJ_DATA_PATH, NEW_PROJECT_PATH, xmin, ymin, xmax, ymax)
+    CR_DATA_PATH = os.path.join(dataPath, "cr")
+    extract_line_search_data(CR_DATA_PATH, NEW_PROJECT_PATH, xmin, ymin, xmax, ymax)
     grass_operations.export(KRAJ_DATA_PATH, pluginPath, xmin, ymin, xmax, ymax, NEW_PROJECT_PATH, id)
 
 
