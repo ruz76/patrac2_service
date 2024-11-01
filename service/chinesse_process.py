@@ -1,5 +1,5 @@
 """
-Based on Ralf Kistner postman
+Based on Ralf Kistner postman https://github.com/rkistner/chinese-postman
 """
 
 import os
@@ -20,7 +20,7 @@ from shapely.geometry import Point
 from operator import itemgetter, attrgetter
 from config import *
 
-QGIS_RUN=True
+QGIS_RUN=False
 if QGIS_RUN:
     from qgis.PyQt.QtCore import *
     from qgis.PyQt.QtGui import *
