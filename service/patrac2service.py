@@ -311,7 +311,8 @@ def calculate_path_search():
         if 'search_id' in content and \
                 'coordinates' in content and \
                 len(content['coordinates']) == 2 and \
-                'unit_type' in content:
+                'unit_type' in content and \
+                search_exists(content['search_id']):
             epsg = 4326
             coords = content['coordinates']
             if 'epsg' in content:
