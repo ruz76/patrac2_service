@@ -22,14 +22,14 @@ paths:
           required: true
           schema:
             type: number
-            example: 15.1512
+            example: 12.56067
         - name: y
           description: Souřadnice Y. Výchozí je zeměpisná šířka.
           in: query
           required: true
           schema:
             type: number
-            example: 49.8847
+            example: 50.05514
         - name: epsg
           description: EPSG kód pro souřadnice. Výchozí je 4326 tedy WGS 84 (zeměpisná délka a šířka).
           in: query
@@ -454,6 +454,122 @@ paths:
                     type: string
                 example:
                   errorMessage: "Illegal inputs."
+
+  /calculate_path_search:
+    post:
+      summary: Spustí výpočet získání cesty pro liniové pátrání.
+      description: |
+        Spustí výpočet získání cesty pro liniové pátrání.
+        Vrátí seznam souřadnic, po kterých se má prostředek pohybovat.
+        Seznam souřadnic bude vždy v systému EPSG:4326
+      operationId: calculate_path_search
+      requestBody:
+        description: Vstup je definován jako struktura JSON.
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                search_id:
+                  description: Identifikátor pátrání
+                  type: string
+                  example: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                unit_type:
+                  description: |
+                    Typ pátracího prostředku.
+                    Vysvětlení výčtu je v souboru enums.json.
+                    V případě volby undefined se cílové místo nemodifikuje a k daným alternativám je uveden nejvhodnější prostředek.
+                  type: string
+                  enum: [ "undefined", "handler", "phalanx_person", "horse_rider", "vehicle_driver", "drone", "diver", "other" ]
+                  default: "undefined"
+                  example: "handler"
+                coordinates:
+                  description: |
+                    Pole (list) dvoudimenzionálních polí se souřadnicemi.
+                    Souřadnice představují výchozí a cílové místo pro vymezení pátrání (resp. směru pátrání).
+                    Ukázka v příkladu.
+                  type: array
+                  maxItems: 2
+                  minItems: 2
+                  items:
+                    type: array
+                    maxItems: 2
+                    minItems: 2
+                    items:
+                      type: number
+                epsg:
+                  description: EPSG kód pro souřadnice. Výchozí je 4326 tedy WGS 84 (zeměpisná délka a šířka).
+                  type: integer
+                  default: 4326
+                timeout:
+                  description: Maximální doba v sekundách po kterou bude proces udržovat spojení a po jejím uplynutí vrátí status.
+                  type: integer
+                  default: 60
+                  example: 60
+                id:
+                  description: |
+                    Identifikátor výpočtu cesty. V případě, že se jedná o již probíhající výpočet.
+                    Pokud není uveden, vytvoří se nový výpočet cesty.
+                    Pokud je uveden a výpočet existuje, pak se vrátí jeho status.
+                    Pokud je uveden a výpočet s daným id neexistuje, pak je vytvořen nový výpočet s uvedeným id.
+                  type: string
+                  default: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              required:
+                - search_id
+                - unit_type
+                - coordinates
+            example:
+              search_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              unit_type: "undefined"
+              coordinates: [[12.56067, 50.05514], [12.57067, 50.05514]]
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    description: Identifikátor výpočtu získání cesty.
+                    type: string
+                    example: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status:
+                    description: Stav výpočtu získání cesty.
+                    type: string
+                    enum: [ "PROCESSING", "ERROR", "DONE" ]
+                    example: "PROCESSING"
+                  progress:
+                    description: Procenta stavu vytvoření.
+                    type: integer
+                    example: 60
+                  search_path:
+                    description: |
+                      Seznam souřadnic cesty.
+                      Je vrácen v případě, že status je PARTIAL nebo DONE a alespoň jedna alternativa vypočítána.
+                      Ukázka je v path_sample.json
+                    type: object
+                required:
+                  - id
+                  - status
+                  - progress
+                example:
+                  id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                  status: "PROCESSING"
+                  progress: 60
+        "400":
+          description: |
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. jsou souřadnice mimo oblast, kde máme k dispozici data.
+            Pozn. V případě, že budeme potřebovat lépe strukturovat chybu, včetně více variant, můžeme dále rozvést.
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "Illegal inputs."
+
 
   /version:
     get:

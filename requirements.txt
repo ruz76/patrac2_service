@@ -2,3 +2,5 @@ fiona
 Flask
 shapely
 pyproj
+networkx
+gdal

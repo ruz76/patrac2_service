@@ -1,6 +1,7 @@
 from flask import Flask, request, Response
 import json, uuid
 from grass_process import *
+from chinesse_process import *
 from config import *
 import time
 import os
@@ -26,6 +27,11 @@ def transform_coordinates_to_5514(x, y, from_code):
     to_proj = pyproj.Proj("+init=epsg:5514")
     return pyproj.transform(from_proj, to_proj, x, y)
 
+def transform_coordinates_to_4326(x, y, from_code):
+    from_proj = pyproj.Proj("+init=epsg:" + str(from_code))
+    to_proj = pyproj.Proj("+init=epsg:4326")
+    return pyproj.transform(from_proj, to_proj, x, y)
+
 def get_log_progress(id):
     if os.path.exists(os.path.join(serviceStoragePath, "logs", id + ".log")):
         with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "r") as log:
@@ -47,12 +53,15 @@ def get_ok_response(id, type):
     print(progress)
     status = 'PROCESSING'
     sectors = None
+    search_path = None
     if progress == 100:
         status = 'DONE'
         if type == 'calculate_sectors':
             sectors = get_sectors_to_return(id)
     if progress == -1:
         status = 'ERROR'
+    if progress > 0 and type == 'calculate_path_search':
+        search_path = get_paths_to_return(id)
 
     ret = {
         "status": status,
@@ -66,7 +75,13 @@ def get_ok_response(id, type):
         ret["sectors"] = sectors
     else:
         if progress == 100 and type == 'calculate_sectors':
-            ret["status"] = 'ERROR'
+            ret["status"] = {"status": "ERROR"}
+
+    if search_path is not None:
+        ret["search_path"] = search_path
+    else:
+        if progress == 100 and type == 'calculate_path_search':
+            ret["search_path"] = {"status": "ERROR"}
 
     resp = Response(response=json.dumps(ret),
                     status=200,
@@ -331,6 +346,82 @@ def version():
                     status=200,
                     mimetype="application/json")
     return resp
+
+@app.route("/calculate_path_search", methods=['POST'])
+def calculate_path_search():
+    content = request.get_json(silent=True)
+    timeout = 60
+    if 'timeout' in content:
+        timeout = content["timeout"]
+
+    existing = False
+    id = str(uuid.uuid4())
+    if 'id' in content and content['id'] != '':
+        id = content['id']
+        existing = True
+
+    if not existing:
+        if 'search_id' in content and \
+                'coordinates' in content and \
+                len(content['coordinates']) == 2 and \
+                'unit_type' in content and \
+                search_exists(content['search_id']):
+            epsg = 4326
+            coords = content['coordinates']
+            if 'epsg' in content:
+                epsg = content['epsg']
+            if epsg != 4326:
+                coords = []
+                for coord in content['coordinates']:
+                    xy = transform_coordinates_to_4326(coord[0], coord[1], epsg)
+                    coords.append([xy[0], xy[1]])
+            config = {
+                    "log_level": "debug",
+                    "gpkg_path": os.path.join(serviceDataPath, "projekty", content["search_id"], "line_search", "data.gpkg"),
+                    "output_dir": os.path.join(serviceDataPath, id),
+                    "covers": {
+                        "handler": 12,
+                        "pedestrian": 12,
+                        "rider": 16,
+                        "quad_bike": 20
+                    },
+                    "searchers": {
+                        "handler": 1,
+                        "pedestrian": 1,
+                        "rider": 2,
+                        "quad_bike": 3
+                    },
+                    "unit_type": content['unit_type'],
+                    "sectors": [],
+                    "start_point": coords[0],
+                    "end_point": coords[1]
+                }
+            if not os.path.exists(config['output_dir']):
+                os.makedirs(config['output_dir'])
+            with open(os.path.join(config['output_dir'], "config.json"), "w") as config_out:
+                config_out.write(json.dumps(config))
+            # "start_point": [15.0339242, 49.340751],
+            # "end_point": [15.0677249, 49.3256828]
+            thread = Thread(target=find_path_based_on_shortest_path, args=(id, content['search_id'], config, ))
+            thread.daemon = True
+            thread.start()
+            with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "a") as log:
+                log.write("THREAD STARTED\n0\n")
+        else:
+            return get_400_response('Illegal inputs.')
+
+    progress = int(get_log_progress(id))
+    time_elapsed = 0
+    while (progress > -1 and progress < 100) and time_elapsed < timeout:
+        time.sleep(1)
+        time_elapsed += 1
+        progress = int(get_log_progress(id))
+
+    message = get_log_info(id)
+    if message.startswith('ERROR'):
+        return get_400_response(message)
+    else:
+        return get_ok_response(id, 'calculate_path_search')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
