@@ -3,3 +3,4 @@ Flask
 shapely
 pyproj
 networkx
+gdal

@@ -1119,7 +1119,7 @@ def create_layer(config, graph, nodes, name):
     for u, v in pairs(nodes, False):
         pos += 1
         ts = ts + timedelta(seconds=1)
-        print(str(u) + " " + str(v))
+        # print(str(u) + " " + str(v))
         # print(v)
         # print(graph[u][v])
         if 0 in graph[u][v] and 'id' in graph[u][v][0]:
@@ -1271,10 +1271,10 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
             u, v = shortest_path[i], shortest_path[i + 1]
             if not H.has_edge(u, v):
                 H.add_edge(u, v, weight=graph.get_edge_data(u, v)['weight'], id=graph.get_edge_data(u, v)['id'])
-                print(str(u) + " " + str(v) + " " + str(graph.get_edge_data(u, v)['weight']) + " " + str(graph.get_edge_data(u, v)['id']))
+                # print(str(u) + " " + str(v) + " " + str(graph.get_edge_data(u, v)['weight']) + " " + str(graph.get_edge_data(u, v)['id']))
 
         create_layer_for_polygon(config, H, H.nodes, 'test_ring_only_' + str(start_node), False)
-        print(H.nodes)
+        # print(H.nodes)
 
         get_ring_polygon(config)
         graph_data_input_missing_edges = prepare_data_for_graph_based_on_polygon(config)
@@ -1482,10 +1482,10 @@ def export_linies_into_xy_csv(shp_path):
     with fiona.open(shp_path) as layer:
         with open(shp_path + ".csv", "w") as out_csv:
             for feature in layer:
-                print(feature["properties"]["ord"])
+                # print(feature["properties"]["ord"])
                 line = shape(feature["geometry"])
                 for coord in line.coords:
-                    print(coord)
+                    # print(coord)
                     out_csv.write(str(coord[0]) + ',' + str(coord[1]) + '\n')
 
 def graph_exists(solved_graphs, solved_graph):

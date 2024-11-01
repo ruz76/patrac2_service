@@ -1,10 +1,10 @@
+from osgeo import gdal
 import csv, io, math, socket, subprocess, os, sys, uuid
 from shutil import copy
 from glob import glob
 import json
 import proc.operations as grass_operations
 from config import *
-from osgeo import gdal
 import pyproj
 
 def copyTemplate(NEW_PROJECT_PATH, NAMESAFE, region):

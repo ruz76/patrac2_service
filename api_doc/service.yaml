@@ -22,14 +22,14 @@ paths:
           required: true
           schema:
             type: number
-            example: 15.1512
+            example: 12.56067
         - name: y
           description: Souřadnice Y. Výchozí je zeměpisná šířka.
           in: query
           required: true
           schema:
             type: number
-            example: 49.8847
+            example: 50.05514
         - name: epsg
           description: EPSG kód pro souřadnice. Výchozí je 4326 tedy WGS 84 (zeměpisná délka a šířka).
           in: query
@@ -521,7 +521,7 @@ paths:
             example:
               search_id: "13ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
               unit_type: "undefined"
-              coordinates: [ [ 15.153, 49.991 ], [ 15.1536, 49.815 ] ]
+              coordinates: [[12.56067, 50.05514], [12.57067, 50.05514]]
       responses:
         "200":
           description: "OK"
