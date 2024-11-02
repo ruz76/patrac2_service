@@ -247,7 +247,7 @@ def eulerian_circuit(graph, start_node=None):
     if start_node in graph.nodes():
         node = start_node
     # print(graph.nodes()[start_node])
-    print("eulerian_circuit: " + str(node))
+    # print("eulerian_circuit: " + str(node))
     circuit = list(nx.eulerian_circuit(graph, source=node))
     nodes = []
     for u, v in circuit:
@@ -335,7 +335,7 @@ def are_on_the_same_position(coord1, coord2, tolerance):
 
 def get_points_on_path(gpkg_path, table_name):
     print('Before fiona open')
-    print(fiona.__version__)
+    # print(fiona.__version__)
     output_coords_sequence = []
     pos = 0
     coords_0 = None
@@ -392,16 +392,16 @@ def get_points_on_path(gpkg_path, table_name):
 def save_layer_as_geojson(gpkg_path, table_name, fields, output_path):
     features_output = []
     print('Before fiona open')
-    print(fiona.__version__)
+    # print(fiona.__version__)
     with fiona.open(gpkg_path, layer=table_name) as layer:
         for feature in layer:
             # print(feature)
             # print(feature["geometry"])
             # print(shape(feature["geometry"]))
-            try:
-                print(mapping(shape(feature["geometry"])))
-            except Exception as e:
-                print(e)
+            # try:
+            #     print(mapping(shape(feature["geometry"])))
+            # except Exception as e:
+            #     print(e)
             # feature_output = {
             #     "type": "Feature",
             #     "properties": {},
@@ -1198,7 +1198,7 @@ def test_me():
     solve_area(config)
 
 
-def solve_one_part(start_node, end_node, config, graph_data_input):
+def solve_one_part(start_node, end_node, config, graph_data_input, id):
     if os.path.exists(os.path.join(config['output_dir'], end_node + '_graph.json')):
         # Deserializace z JSON
         with open(os.path.join(config['output_dir'], end_node + '_graph.json'), 'r') as f:
@@ -1226,7 +1226,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
             return
 
         # Výpis výsledků
-        print(f'Náhodně vybrané uzly: {start_node} a {end_node}')
+        print(f'Uzly: {start_node} a {end_node}')
         print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
         print(f'Délka nejkratší trasy je: {shortest_path_length}')
 
@@ -1250,22 +1250,22 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
         start_node = end_node
         end_node = start_node_orig
 
-        print(end_node)
+        # print(end_node)
 
         try:
             shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
             shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
         except Exception as e:
             print(e)
-            print(f'Hrany v grafu: {graph.edges(data=True)}')
+            # print(f'Hrany v grafu: {graph.edges(data=True)}')
             return
 
         # Výpis výsledků
-        print(f'Náhodně vybrané uzly: {start_node} a {end_node}')
+        print(f'Uzly: {start_node} a {end_node}')
         print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
         print(f'Délka nejkratší trasy je: {shortest_path_length}')
 
-        print(shortest_path)
+        # print(shortest_path)
         # Přidání hran z druhé nejkratší cesty
         for i in range(len(shortest_path) - 1):
             u, v = shortest_path[i], shortest_path[i + 1]
@@ -1284,6 +1284,13 @@ def solve_one_part(start_node, end_node, config, graph_data_input):
         G_union = nx.compose(H, graph_missing_edges)
         # print(G_union)
 
+        number_of_edges = G_union.number_of_edges()
+        print("Počet hran v grafu:", number_of_edges)
+
+        if number_of_edges > 300:
+            logInfo('ERROR: Can not solve this graph to node: ' + str(end_node) + '. It has more than 300 edges.\n', id)
+            return
+
         graph_solution = solve_graph(G_union, config, 'test_' + str(start_node))
         # print(graph_solution)
 
@@ -1298,10 +1305,10 @@ def get_ring_polygon(config):
             # print(line)
             lines.append(line)
         polygons = list(polygonize(lines))
-        # print(polygons)
-        for polygon in polygons:
-            print('POLYGON: ')
-            print(polygon)
+        print('POLYGONS CONUT: ' + str(len(polygons)))
+        # for polygon in polygons:
+        #     print('POLYGON: ')
+        #     print(polygon)
 
     # Soubor GeoPackage, do kterého chceme uložit polygony
     gpkg_path = config['gpkg_path']
@@ -1403,7 +1410,7 @@ def find_points(config, nodes_with_degree_one):
     for i in range(8):
         closets_points[i] = []
 
-    print(edge_points)
+    # print(edge_points)
     start_point = [0, 1000000]
     start_point_point = Point(source_point[0], source_point[1])
 
@@ -1503,7 +1510,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
     grades = '0, 1, 2, 3, 4, 5, 6'
     # print(grades)
     graph_data_input = prepare_data_for_graph(config, config['sectors'], grades)
-    print(graph_data_input)
+    # print(graph_data_input)
     logInfo("GRAPH DATA PREPARED\n5\n", id)
     graph = build_graph(graph_data_input, [])
     logInfo("GRAPH BUILT\n10\n", id)
@@ -1521,7 +1528,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
         # We take only first 10 points
         step = round(70 / 10)
         for end_point in end_points[i]:
-            solution_results = solve_one_part(str(start_point[0]), str(end_point['id']), config, graph_data_input)
+            solution_results = solve_one_part(str(start_point[0]), str(end_point['id']), config, graph_data_input, id)
             if solution_results is not None:
                 percent = 15 + (pos_end_points + 1) * step
                 logInfo("SOLVED PATH " + str(pos_end_points) + " FROM " + str(len(end_points[i])) + " POINTS\n" + str(percent) + "\n", id)
