@@ -184,16 +184,11 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     logInfo("DEM IMPORTED\n50\n", ID)
 
     #If the data are from ZABAGED
-    if os.path.isfile(os.path.join(DATAINPUTPATH, 'vektor', 'ZABAGED', 'line_x', 'merged_polygons_groupped.shp')):
-        print(gscript.read_command('v.in.ogr', output='sectors_group', input=os.path.join(DATAINPUTPATH, 'vektor', 'ZABAGED', 'line_x'), snap=0.01, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
+    if os.path.isfile(os.path.join(DATAINPUTPATH, 'vektor', 'ZABAGED', 'sectors.shp')):
+        print(gscript.read_command('v.in.ogr', output='sectors_group', input=os.path.join(DATAINPUTPATH, 'vektor', 'ZABAGED'), snap=0.01, layer='sectors', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
         print(gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=os.path.join(PLUGIN_PATH, 'grass', 'landuse_type_zbg.rules')))
 
     logInfo("SECTORS IMPORTED\n55\n", ID)
-
-    #If the data are from OSM
-    if os.path.isfile(os.path.join(DATAINPUTPATH, 'vektor', 'OSM', 'line_x', 'merged_polygons_groupped.shp')):
-        print(gscript.read_command('v.in.ogr', output='sectors_group', input=os.path.join(DATAINPUTPATH, 'vektor', 'OSM', 'line_x'), snap=0.01, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o"))
-        print(gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=os.path.join(PLUGIN_PATH, 'grass', 'landuse_type_osm.rules')))
 
     logInfo("LANDUSE RECLASSED IMPORTED\n60\n", ID)
 
@@ -513,11 +508,11 @@ def convertToGeoJSON(id, search_id):
 
             feature = {
                 "geometry": mapping(geom_transformed),
-                "properties": {"id": props["id"]}
+                "properties": {"id": props["id"], "label": props["label"], "typ": props["typ"]}
             }
             features.append(feature)
 
-    schema1 = {"geometry": "Unknown", "properties": [("id", "str")]}
+    schema1 = {"geometry": "Unknown", "properties": [("id", "str"), ("label", "str"), ("typ", "str")]}
 
     # attempt to overwrite it with a valid file
     with fiona.open(os.path.join(dataPath, id + "_sectors.geojson"), "w", driver="GeoJSON", schema=schema1) as dst:

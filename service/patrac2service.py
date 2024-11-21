@@ -18,7 +18,7 @@ def get_region(x, y):
         for feature in kraje:
             poly = shape(feature['geometry'])
             point = Point(x, y)
-            if (poly.contains(point) or point.touches(poly)) and os.path.exists(os.path.join(dataPath, 'kraje', feature['properties']['region'],  'vektor', 'ZABAGED', 'line_x', 'merged_polygons_groupped.shp')):
+            if (poly.contains(point) or point.touches(poly)) and os.path.exists(os.path.join(dataPath, 'kraje', feature['properties']['region'],  'vektor', 'ZABAGED', 'sectors.shp')):
                 return feature['properties']['region']
     return None
 
