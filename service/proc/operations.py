@@ -106,13 +106,6 @@ def export(datapath, plugin_path, xmin, ymin, xmax, ymax, data_output_path, id):
 
     logInfo("LANDUSE EXPORTED\n10\n", ID)
 
-    #Exports friction_slope
-    #r.out.ascii input=friction_slope output=friction_slope.ascii
-    #Bin would be better (size is smaller, export is faster), but there are some problems with import
-    print(gscript.read_command('r.out.bin', flags="h", null=-99, input='friction_slope', output=os.path.join(DATAOUTPUTPATH, 'grassdata', 'friction_slope.bin'), overwrite=True))
-
-    logInfo("FRICTION_SLOPE EXPORTED\n15\n", ID)
-
     #Exports friction only, without slope, we will use r.walk instead r.cost
     print(gscript.read_command('r.out.bin', flags="h", null=100, input='friction', output=os.path.join(DATAOUTPUTPATH, 'grassdata', 'friction.bin'), overwrite=True))
 
@@ -161,13 +154,6 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     os.remove(os.path.join(DATAPATH, 'grassdata', 'landuse.bin'))
 
     logInfo("LANDUSE IMPORTED\n35\n", ID)
-
-    #Imports friction_slope
-    print(gscript.read_command('r.in.bin', flags="hf", anull=-99, output='friction_slope', input=os.path.join(DATAPATH, 'grassdata', 'friction_slope.bin'), overwrite=True))
-    # Delete the file
-    os.remove(os.path.join(DATAPATH, 'grassdata', 'friction_slope.bin'))
-
-    logInfo("FRICTION_SLOPE IMPORTED\n40\n", ID)
 
     #Imports friction
     print(gscript.read_command('r.in.bin', flags="h", bytes=2, anull=100, output='friction', input=os.path.join(DATAPATH, 'grassdata', 'friction.bin'), overwrite=True))
