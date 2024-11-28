@@ -183,8 +183,8 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='prostredky VARCHAR(254)', overwrite=True))
 
     #Computes areas
-    print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='area_ha DOUBLE PRECISION', overwrite=True))
-    print(gscript.read_command('v.to.db', map='sectors_group', layer='1', option='area', units='hectares', columns='area_ha', overwrite=True))
+    # print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='area_ha DOUBLE PRECISION', overwrite=True))
+    # print(gscript.read_command('v.to.db', map='sectors_group', layer='1', option='area', units='hectares', columns='area_ha', overwrite=True))
     #Adds label column
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='label VARCHAR(50)', overwrite=True))
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='poznamka VARCHAR(255)', overwrite=True))
