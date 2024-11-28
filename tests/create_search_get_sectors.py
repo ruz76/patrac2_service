@@ -103,6 +103,16 @@ def save_results(status, output_dir, pos, lon, lat):
 def delete_project(status):
     shutil.rmtree(os.path.join('/media/jencek/Elements1/patrac/patracdata_patrac2/service/data/projekty', status['sectors']['metadata']['search_id']))
 
+def calculate_sectors_2(base_url, status, lon, lat, timeout):
+    status = calculate_sectors(base_url, status['id'], lon, lat, timeout)
+    if status['status'] == 'DONE':
+        save_results(status, sys.argv[2], pos, lon, lat)
+        delete_project(status)
+    else:
+        time.sleep(60)
+        save_results(status, sys.argv[2], pos, lon, lat)
+        delete_project(status)
+
 if len(sys.argv) != 3:
     print("You have to specify input file with list of coordinates to test and output directory where to store results.")
     print("Example: python3 create_search_get_sectors.py coordinates.txt /tmp/output/")
@@ -120,7 +130,7 @@ with open(sys.argv[1]) as coords_file:
     while True:
         if os.path.exists(running_path):
             print(pos)
-            if (pos > 148 and pos < 1605) or (pos > 1750):
+            if (pos > 1000 and pos < 1605) or (pos > 1750):
                 coords = coords_list[pos]
                 try:
                     print("\n\nCreating search for: " + str(pos) + " " + str(coords))
@@ -129,10 +139,11 @@ with open(sys.argv[1]) as coords_file:
                     status = create_search(base_url, lon, lat, timeout)
                     if status is not None:
                         if status['status'] == 'DONE':
-                            status = calculate_sectors(base_url, status['id'], lon, lat, timeout)
-                            if status['status'] == 'DONE':
-                                save_results(status, sys.argv[2], pos, lon, lat)
-                                delete_project(status)
+                            calculate_sectors_2(base_url, status, lon, lat, timeout)
+                        else:
+                            time.sleep(60)
+                            calculate_sectors_2(base_url, status, lon, lat, timeout)
+
                 except:
                     print("ERROR processing: " + str(pos))
 

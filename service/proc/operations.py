@@ -183,8 +183,8 @@ def import_data(datapath, plugin_path, xmin, ymin, xmax, ymax, data_input_path, 
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='prostredky VARCHAR(254)', overwrite=True))
 
     #Computes areas
-    #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='area_ha DOUBLE PRECISION', overwrite=True))
-    #print(gscript.read_command('v.to.db', map='sectors_group', layer='1', option='area', units='hectares', columns='area_ha', overwrite=True))
+    print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='area_ha DOUBLE PRECISION', overwrite=True))
+    print(gscript.read_command('v.to.db', map='sectors_group', layer='1', option='area', units='hectares', columns='area_ha', overwrite=True))
     #Adds label column
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='label VARCHAR(50)', overwrite=True))
     #print(gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='poznamka VARCHAR(255)', overwrite=True))
@@ -494,11 +494,11 @@ def convertToGeoJSON(id, search_id):
 
             feature = {
                 "geometry": mapping(geom_transformed),
-                "properties": {"id": props["id"], "label": props["label"], "typ": props["typ"]}
+                "properties": {"id": props["id"], "label": props["label"], "typ": props["typ"], "area_ha": props["area_ha"]}
             }
             features.append(feature)
 
-    schema1 = {"geometry": "Unknown", "properties": [("id", "str"), ("label", "str"), ("typ", "str")]}
+    schema1 = {"geometry": "Unknown", "properties": [("id", "str"), ("label", "str"), ("typ", "str"), ("area_ha", "float")]}
 
     # attempt to overwrite it with a valid file
     with fiona.open(os.path.join(dataPath, id + "_sectors.geojson"), "w", driver="GeoJSON", schema=schema1) as dst:
@@ -700,6 +700,39 @@ def fixUt(ut):
     else:
         return ut
 
+def getReportItems(feature):
+    # Returns type of the search landuse based on landuse type
+    # 1 volný schůdný bez porostu
+    # 2 volný schůdný s porostem
+    # 3 volný obtížně schůdný
+    # 4 porost lehce průchozí
+    # 5 porost obtížně průchozí
+    # 6 zastavěné území měst a obcí
+    # 7 městské parky a hřiště s pohybem osob
+    # 8 městské parky a hřiště bez osob
+    # 9 vodní plocha
+    # 10 ostatní plochy
+    types = [
+        ['ODPOCI', 'OSPLSI', 'TRTRPO'],
+        ['ORNAPU', 'SADZAH'],
+        ['KOLEJI', 'POTELO', 'SKLADK'],
+        ['LPSTROM', 'VINICE', 'CHMELN'],
+        ['LPKOSO', 'LPKROV', 'MAZCHU'],
+        ['AREZAS', 'ARUCZA', 'HRBITO', 'PRSTPR', 'ROZTRA', 'ROZZRI', 'ULOMIS', 'USNAOD', 'INTRAV'],
+        ['ZAHPAR'],
+        [],
+        ['VODPLO'],
+        ['ELEKTR', 'LETISTE', 'OTHER'],
+    ]
+    selected_type = 10
+    id = 1
+    for type in types:
+        if feature["properties"]['typ'] in type:
+            selected_type = id
+        id += 1
+    stats = str(selected_type) + '||' + str(feature["properties"]['area_ha'] * 10000) + '|100%'
+    return [stats]
+
 def report_export(id):
     ID = id
 
@@ -732,12 +765,12 @@ def report_export(id):
     SUM_P9 = 0
     SUM_P10 = 0
 
-    conn = None
-    try:
-        conn = sqlite3.connect(os.path.join(patracDataPath, 'kraje', geojson["metadata"]["region"], 'vektor', 'ZABAGED', 'line_x', 'stats.db'))
-    except Error as e:
-        # TODO this is not good way
-        sys.exit()
+    # conn = None
+    # try:
+    #     conn = sqlite3.connect(os.path.join(patracDataPath, 'kraje', geojson["metadata"]["region"], 'vektor', 'ZABAGED', 'line_x', 'stats.db'))
+    # except Error as e:
+    #     # TODO this is not good way
+    #     sys.exit()
 
     # Loops via all selected search sectors based on number of sectors
     for feature in geojson["features"]:
@@ -755,32 +788,33 @@ def report_export(id):
         # Mask working area based on are of current sector
         REPORT = ""
         #print(DATAPATH + "/../../vektor/ZABAGED/line_x/" + LABELS[i-1] + ".stats")
-        if not conn is None:
-            try:
-                c = conn.cursor()
-                c.execute("SELECT def_text FROM stats WHERE id = '" + feature["properties"]["id"] + "'")
-                row = c.fetchone()
-                if row is not None:
-                    REPORT = row[0]
-                c.close()
-            except:
-                if c is not None:
-                    c.close()
+        # if not conn is None:
+        #     try:
+        #         c = conn.cursor()
+        #         c.execute("SELECT def_text FROM stats WHERE id = '" + feature["properties"]["id"] + "'")
+        #         row = c.fetchone()
+        #         if row is not None:
+        #             REPORT = row[0]
+        #         c.close()
+        #     except:
+        #         if c is not None:
+        #             c.close()
 
-        if not REPORT == "":
-            print(REPORT)
-        else:
-            print(gscript.read_command('r.mask', vector='sektory_group_selected_modified', where="id='" + feature["properties"]["id"] + "'",
-                                       overwrite=True))
-
-            # ziskani reportu - procenta ploch v sektoru
-            # Gets stats for landuse areas in masked region
-            REPORT = gscript.read_command('r.stats', input='landuse_type', separator='pipe', flags='plna')
-            #print(REPORT)
-
-        if REPORT == "":
-            print("ERROR ON " + feature["properties"]["id"])
-            continue
+        # TODO maybe include in the final version
+        # if not REPORT == "":
+        #     print(REPORT)
+        # else:
+        #     print(gscript.read_command('r.mask', vector='sektory_group_selected_modified', where="id='" + feature["properties"]["id"] + "'",
+        #                                overwrite=True))
+        #
+        #     # ziskani reportu - procenta ploch v sektoru
+        #     # Gets stats for landuse areas in masked region
+        #     REPORT = gscript.read_command('r.stats', input='landuse_type', separator='pipe', flags='plna')
+        #     #print(REPORT)
+        #
+        # if REPORT == "":
+        #     print("ERROR ON " + feature["properties"]["id"])
+        #     continue
 
         # Sets areas of types of areas to zero
         # TODO - vyjasnit zarazeni typu + mozna pouzit i letecke snimky - nejaká jednoduchá automaticka rizena klasifikace
@@ -795,7 +829,8 @@ def report_export(id):
         P9 = 0  # vodni plocha
         P10 = 0  # ostatni
 
-        REPORTITEMS = REPORT.splitlines(False)
+        REPORTITEMS = getReportItems(feature)
+        # REPORTITEMS = REPORT.splitlines(False)
 
         # Decides for each type of area from REPORT in which category belongs
         try:
@@ -856,8 +891,8 @@ def report_export(id):
         if P10 > 100:
             P10 = 100
 
-    if not conn is None:
-        conn.close()
+    # if not conn is None:
+    #     conn.close()
 
     try:
         # Removes mask to be ready for another calculations for whole area
