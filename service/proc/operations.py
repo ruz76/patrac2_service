@@ -774,7 +774,7 @@ def report_export(id):
 
     # Loops via all selected search sectors based on number of sectors
     for feature in geojson["features"]:
-        print(feature["properties"]["id"])
+        # print(feature["properties"]["id"])
         # vybrani jednoho sektoru dle poradi
         # Selects one sector based on order (attribute cats is from 1 to number of items)
         # print gscript.read_command('v.extract', input='sektory_group_selected_modified', output='sektory_group_selected_modified_' + str(i), where="cat='"+str(i)+"'", overwrite=True)
