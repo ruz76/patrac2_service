@@ -15,10 +15,12 @@ import xml.dom.minidom as minidom
 from datetime import datetime, timedelta
 import json
 from shapely.geometry import mapping, shape
-from shapely.ops import polygonize
-from shapely.geometry import Point
+from shapely.ops import linemerge, polygonize
+from shapely.geometry import LineString, Point, MultiLineString
 from operator import itemgetter, attrgetter
 from config import *
+from collections import defaultdict
+import numpy as np
 
 QGIS_RUN=False
 if QGIS_RUN:
@@ -1296,6 +1298,50 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
 
     return [graph_solution, G_union]
 
+def robust_snap(lines, tolerance):
+    """
+    Snapne linie k nejbližším bodům pouze jednorázově, bez opakovaného přesunu bodů.
+    """
+    # Všechny body v jedné sadě
+    all_coords = np.array([coord for line in lines for coord in line.coords])
+
+    # Jedinečné body
+    unique_coords = np.unique(all_coords, axis=0)
+
+    # Výsledné snapnuté linie
+    snapped_lines = []
+    for line in lines:
+        snapped_coords = []
+        for coord in line.coords:
+            # Najdeme nejbližší bod v unikátních souřadnicích
+            dists = np.linalg.norm(unique_coords - coord, axis=1)
+            min_idx = np.argmin(dists)
+            if dists[min_idx] <= tolerance:
+                snapped_coords.append(tuple(unique_coords[min_idx]))
+            else:
+                snapped_coords.append(coord)
+        snapped_lines.append(LineString(snapped_coords))
+    return snapped_lines
+
+def connect_unclosed_lines(lines, tolerance):
+    """
+    Explicitně vytvoří linie mezi nespojenými body.
+    """
+    endpoints = defaultdict(int)
+    for line in lines:
+        endpoints[line.coords[0]] += 1
+        endpoints[line.coords[-1]] += 1
+
+    unclosed = [Point(coord) for coord, count in endpoints.items() if count % 2 != 0]
+
+    additional_lines = []
+    for i, point1 in enumerate(unclosed):
+        for j, point2 in enumerate(unclosed):
+            if i < j and point1.distance(point2) <= tolerance:
+                additional_lines.append(LineString([point1, point2]))
+
+    return lines + additional_lines
+
 def get_ring_polygon(config):
     with fiona.open(config['gpkg_path'], layer='chpostman_path_export') as layer:
         lines = []
@@ -1304,7 +1350,18 @@ def get_ring_polygon(config):
             line = shape(feature['geometry'])
             # print(line)
             lines.append(line)
-        polygons = list(polygonize(lines))
+
+        # Krok 1: Snapping
+        tolerance = 0.00001  # ~1 metr
+        snapped_lines = robust_snap(lines, tolerance)
+
+        # Krok 2: Spojení nespojených bodů
+        fixed_lines = connect_unclosed_lines(snapped_lines, tolerance)
+
+        # Krok 3: Polygonizace
+        merged_lines = linemerge(MultiLineString(fixed_lines))
+        polygons = list(polygonize(merged_lines))
+
         print('POLYGONS CONUT: ' + str(len(polygons)))
         # for polygon in polygons:
         #     print('POLYGON: ')

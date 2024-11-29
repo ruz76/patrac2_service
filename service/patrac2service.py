@@ -424,4 +424,4 @@ def calculate_path_search():
         return get_ok_response(id, 'calculate_path_search')
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=5001)

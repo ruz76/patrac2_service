@@ -6,7 +6,7 @@ from qgis.core import QgsSimpleLineSymbolLayer, QgsRendererCategory, QgsCategori
 import json
 import time
 
-with open("/data/patracdata/service/data/98c46f06-58fa-43ad-adcd-09cc04e7648f/2883069_solution.json") as pp:
+with open("/media/jencek/Elements1/patrac/patracdata_patrac2/service/data/5777f35e-9173-4f83-bf30-453ab39340f3/471165_solution.json") as pp:
     data = json.load(pp)
 
 print(data)
