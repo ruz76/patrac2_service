@@ -1214,9 +1214,9 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
         # print(graph)
         if not start_node in graph or end_node not in graph:
             if not start_node in graph:
-                print("Nod " + str(start_node) + " není v grafu")
+                print("Node " + str(start_node) + " is not in the graph")
             if end_node not in graph:
-                print("Nod " + str(end_node) + " není v grafu")
+                print("Node " + str(end_node) + " is not in the graph")
             return
 
         # Výpočet nejkratší trasy mezi těmito uzly
@@ -1224,13 +1224,13 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
             shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
             shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
         except:
-            print('Nebyla nalezena trasa mezi výchozím a cílovým bodem')
+            print('The path between start and end nodes has not been found')
             return
 
         # Výpis výsledků
-        print(f'Uzly: {start_node} a {end_node}')
-        print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
-        print(f'Délka nejkratší trasy je: {shortest_path_length}')
+        print(f'Nodes: {start_node} a {end_node}')
+        print(f'Shortest path between {start_node} and {end_node} is: {shortest_path}')
+        print(f'Length of the shortest path is: {shortest_path_length}')
 
         # Vytvoření nového grafu obsahujícího hrany z obou nejkratších cest
         H = nx.Graph()
@@ -1263,9 +1263,9 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
             return
 
         # Výpis výsledků
-        print(f'Uzly: {start_node} a {end_node}')
-        print(f'Nejkratší trasa mezi {start_node} a {end_node} je: {shortest_path}')
-        print(f'Délka nejkratší trasy je: {shortest_path_length}')
+        print(f'Nodes: {start_node} a {end_node}')
+        print(f'Shortest path between {start_node} and {end_node} is: {shortest_path}')
+        print(f'Length of the shortest path is: {shortest_path_length}')
 
         # print(shortest_path)
         # Přidání hran z druhé nejkratší cesty
@@ -1287,7 +1287,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
         # print(G_union)
 
         number_of_edges = G_union.number_of_edges()
-        print("Počet hran v grafu:", number_of_edges)
+        print("Number of edges in the graph:", number_of_edges)
 
         if number_of_edges > 300:
             logInfo('ERROR: Can not solve this graph to node: ' + str(end_node) + '. It has more than 300 edges.\n', id)
@@ -1437,7 +1437,7 @@ def get_ring_polygon(config):
     gpkg_ds.ExecuteSQL('VACUUM')
     gpkg_ds = None
 
-    print(f'Polygony byly úspěšně uloženy do vrstvy {layer_name} v souboru {gpkg_path}.')
+    print(f'Polygons has been saved into {layer_name} in database {gpkg_path}.')
 
 def find_points(config, nodes_with_degree_one):
     source_point = config['start_point'] #[15.0339242, 49.340751]
@@ -1624,9 +1624,9 @@ def find_path_based_on_shortest_path(id, search_id, config):
         for j in range(len(solved_graphs)):
             if i != j:
                 if are_graphs_identical(solved_graphs[i], solved_graphs[j]):
-                    print("Graf " + solutions[i]['rings'][0]['id'] + " je stejný jako graf " + solutions[j]['rings'][0]['id'])
+                    print("Graph " + solutions[i]['rings'][0]['id'] + " is same as graph " + solutions[j]['rings'][0]['id'])
                 else:
                     if is_subgraph(solved_graphs[i], solved_graphs[j]):
-                        print("Graf " + solutions[i]['rings'][0]['id'] + " je podgrafem grafu " + solutions[j]['rings'][0]['id'])
+                        print("Graph " + solutions[i]['rings'][0]['id'] + " is sub-graph of graph " + solutions[j]['rings'][0]['id'])
 
     logInfo("DONE\n100\n", id)
