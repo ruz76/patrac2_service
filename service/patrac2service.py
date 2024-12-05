@@ -342,7 +342,7 @@ def delete_sector():
 
 @app.route("/version", methods=['GET'])
 def version():
-    resp = Response(response=json.dumps({"version": "2024-11-28"}),
+    resp = Response(response=json.dumps({"version": "2024-12-05"}),
                     status=200,
                     mimetype="application/json")
     return resp
