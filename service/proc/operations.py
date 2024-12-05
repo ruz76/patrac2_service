@@ -211,13 +211,16 @@ def get_sectors_grass(id, search_id, person_type, percentage):
     for coord in coords:
         generateRadialOnPoint(coord)
         result = findAreaWithRadial(coord, i, getPersonTypeId(person_type), search_id)
+        error_on_coords = False
         if result is None:
-            logInfo("ERROR MOVING POINT FROM NULL AREA\n-1\n", id)
-            return
+            logInfo("WARNING: ERROR MOVING POINT FROM NULL AREA ON RESULT\n15\n", id)
+            error_on_coords = True
         cats_status = checkCats()
         if not cats_status:
-            logInfo("ERROR MOVING POINT FROM NULL AREA\n-1\n", id)
-            return
+            logInfo("WARNING: ERROR MOVING POINT FROM NULL AREA ON CATS\n15\n", id)
+            error_on_coords = True
+        if error_on_coords:
+            findAreaWithRingsOnly(coord, i, getPersonTypeId(person_type), search_id)
         cur_weight = "1"
         if (i == 0):
             distances_costed_cum = "(distances0_costed/" + cur_weight + ")"
@@ -244,6 +247,14 @@ def findAreaWithRadial(coord, id, person_type_id, search_id):
     with open(os.path.join(pluginPath, 'grass', 'coords.txt'), 'w') as f_coords:
         f_coords.write(coords)
     result = cost_distance(os.path.join(dataPath, 'projekty', search_id), id, person_type_id)
+    return result
+
+def findAreaWithRingsOnly(coord, id, person_type_id, search_id):
+    coords = str(coord[0]) + ',' + str(coord[1])
+    # writes coord to file for grass
+    with open(os.path.join(pluginPath, 'grass', 'coords.txt'), 'w') as f_coords:
+        f_coords.write(coords)
+    result = cost_distance_on_rings(os.path.join(dataPath, 'projekty', search_id), id, person_type_id)
     return result
 
 def getRadialAlpha(i, KVADRANT):
@@ -690,6 +701,77 @@ def cost_distance(data_path, id, person_type_id):
 
     #Finaly reclass whole cost layer based on min and max values for each ring
     print(gscript.read_command('r.reclass', input='cost' + PLACE_ID, output='distances' + PLACE_ID + '_costed', rules=os.path.join(PLUGIN_PATH, 'grass', 'rules_percentage.txt'), overwrite=True))
+
+    return "CALCULATED"
+
+def cost_distance_on_rings(data_path, id, person_type_id):
+    # DATA
+    # define GRASS DATABASE
+    # add your path to grassdata (GRASS GIS database) directory
+    DATAPATH=data_path
+    gisdb = os.path.join(DATAPATH, 'grassdata')
+    # the following path is the default path on MS Windows
+    # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
+
+    # specify (existing) location and mapset
+    location = "jtsk"
+    mapset   = "PERMANENT"
+
+    init_grass(gisdb, location, mapset)
+    import grass.script as gscript
+
+    PLUGIN_PATH=pluginPath
+    PLACE_ID=str(id)
+    TYPE=int(person_type_id)
+
+    try:
+        print(gscript.read_command('r.mask', flags="r"))
+    except:
+        print("NO MASK")
+
+    #Removes reclass rules
+    rules_percentage_path = os.path.join(PLUGIN_PATH, 'grass', 'rules_percentage.txt')
+    if os.path.exists(rules_percentage_path):
+        os.remove(rules_percentage_path)
+
+    #Reads coords from coords.txt written by patracdockwidget.getArea
+    print(gscript.read_command('g.remove', type='vector', name='coords'))
+    print(gscript.read_command('g.remove', type='raster', name='coords'))
+    print(gscript.read_command('v.in.ascii', input=os.path.join(PLUGIN_PATH, 'grass', 'coords.txt'), output='coords', separator='comma' , overwrite=True))
+    #Converts to the raster
+    print(gscript.read_command('v.to.rast', input='coords', output='coords', use='cat' , overwrite=True))
+
+    #Reads distances from distances selected (or defined) by user
+    distances_f=open(os.path.join(PLUGIN_PATH, 'grass', 'distances.txt'))
+    lines=distances_f.readlines()
+    DISTANCES=lines[TYPE-1]
+
+    #Distances methodology
+    print(gscript.read_command('r.buffer', input='coords', output='distances' + PLACE_ID, distances=DISTANCES , overwrite=True))
+
+    #Creates new reclass rules
+    rules_percentage_f = open(rules_percentage_path, 'w')
+    #Creates empty raster with zero values
+    print(gscript.read_command('r.mapcalc', expression='distances' + PLACE_ID + '_costed = 0', overwrite=True))
+
+    # we have to start on cat 3, so on min of the ring for 20%
+    cat=3
+    #Percentage for distances
+    rules_percentage_f.write('1 = 10\n')
+    rules_percentage_f.write('2 = 10\n')
+    rules_percentage_f.write('3 = 20\n')
+    rules_percentage_f.write('4 = 30\n')
+    rules_percentage_f.write('5 = 40\n')
+    rules_percentage_f.write('6 = 50\n')
+    rules_percentage_f.write('7 = 60\n')
+    rules_percentage_f.write('8 = 70\n')
+    rules_percentage_f.write('9 = 80\n')
+    rules_percentage_f.write('10 = 95\n')
+    #Finish reclass rules
+    rules_percentage_f.write('end')
+    rules_percentage_f.close()
+
+    print(gscript.read_command('r.reclass', input='distances' + PLACE_ID, output='distances' + PLACE_ID + '_costed', rules=os.path.join(PLUGIN_PATH, 'grass', 'rules_percentage.txt'), overwrite=True))
 
     return "CALCULATED"
 
