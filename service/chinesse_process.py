@@ -1057,7 +1057,7 @@ def solve_graph(graph, config, name):
             suggested_unit_types = ["quad_bike"]
         if path_length < 12:
             suggested_unit_types = ["pedestrian", "handler", "horse_rider"]
-        if 12 > path_length <= 18:
+        if 12 <= path_length <= 18:
             suggested_unit_types = ["horse_rider", "handler", "quad_bike"]
 
         output = {
@@ -1200,6 +1200,30 @@ def test_me():
     solve_area(config)
 
 
+def get_shortest_path(start_node, end_node, graph):
+    # print(graph)
+    if not start_node in graph or end_node not in graph:
+        if not start_node in graph:
+            print("Node " + str(start_node) + " is not in the graph")
+        if end_node not in graph:
+            print("Node " + str(end_node) + " is not in the graph")
+        return
+
+    # Výpočet nejkratší trasy mezi těmito uzly
+    try:
+        shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
+        shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
+    except:
+        print('The path between start and end nodes has not been found')
+        return None
+
+    # Výpis výsledků
+    # print(f'Nodes: {start_node} a {end_node}')
+    # print(f'Shortest path between {start_node} and {end_node} is: {shortest_path}')
+    print(f'Length of the shortest path is: {shortest_path_length}')
+
+    return [shortest_path, shortest_path_length]
+
 def solve_one_part(start_node, end_node, config, graph_data_input, id):
     if os.path.exists(os.path.join(config['output_dir'], end_node + '_graph.json')):
         # Deserializace z JSON
@@ -1210,27 +1234,13 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
         # print(graph_solution)
 
     else:
+
         graph = build_graph(graph_data_input, [])
-        # print(graph)
-        if not start_node in graph or end_node not in graph:
-            if not start_node in graph:
-                print("Node " + str(start_node) + " is not in the graph")
-            if end_node not in graph:
-                print("Node " + str(end_node) + " is not in the graph")
+        sp_outputs = get_shortest_path(start_node, end_node, graph)
+        if sp_outputs is None:
             return
 
-        # Výpočet nejkratší trasy mezi těmito uzly
-        try:
-            shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
-            shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
-        except:
-            print('The path between start and end nodes has not been found')
-            return
-
-        # Výpis výsledků
-        print(f'Nodes: {start_node} a {end_node}')
-        print(f'Shortest path between {start_node} and {end_node} is: {shortest_path}')
-        print(f'Length of the shortest path is: {shortest_path_length}')
+        shortest_path = sp_outputs[0]
 
         # Vytvoření nového grafu obsahujícího hrany z obou nejkratších cest
         H = nx.Graph()
@@ -1254,18 +1264,11 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
 
         # print(end_node)
 
-        try:
-            shortest_path = nx.shortest_path(graph, source=start_node, target=end_node, weight='weight')
-            shortest_path_length = nx.shortest_path_length(graph, source=start_node, target=end_node, weight='weight')
-        except Exception as e:
-            print(e)
-            # print(f'Hrany v grafu: {graph.edges(data=True)}')
+        sp_outputs = get_shortest_path(start_node, end_node, graph)
+        if sp_outputs is None:
             return
 
-        # Výpis výsledků
-        print(f'Nodes: {start_node} a {end_node}')
-        print(f'Shortest path between {start_node} and {end_node} is: {shortest_path}')
-        print(f'Length of the shortest path is: {shortest_path_length}')
+        shortest_path = sp_outputs[0]
 
         # print(shortest_path)
         # Přidání hran z druhé nejkratší cesty
@@ -1491,6 +1494,19 @@ def find_points(config, nodes_with_degree_one):
     # print(start_point)
     for key in closets_points:
         closets_points[key] = sorted(closets_points[key], key=itemgetter('distance'))
+
+    # Remove the starting point from the list
+    for key in closets_points:
+        pos_to_remove = -1
+        pos = 0
+        for point in closets_points[key]:
+            if point['id'] == start_point[0]:
+                pos_to_remove = pos
+            pos += 1
+        if pos_to_remove > -1:
+            print('Removing starting point from the list of points')
+            closets_points[key].pop(pos_to_remove)
+
     # print(closets_points)
     # cp = ''
     # for key in closets_points:
@@ -1558,6 +1574,48 @@ def graph_exists(solved_graphs, solved_graph):
             return True
     return False
 
+
+def is_shortest_path_within_distance_tolerance(config, graph, start_node, end_points):
+    min_length = 10000000
+    for i in range(len(end_points)):
+        pos_end_points = 0
+        for end_node in end_points[i]:
+            sp_outputs = get_shortest_path(str(start_node[0]), str(end_node['id']), graph)
+            if sp_outputs is not None:
+                if sp_outputs[1] < min_length:
+                    min_length = sp_outputs[1]
+            pos_end_points += 1
+            if pos_end_points > 9:
+                break
+    if config["shortest_path"][config["unit_type"]] > min_length:
+        return [True, min_length]
+    else:
+        return [False, min_length]
+
+def move_point(start, end, percentage):
+    """
+    Moves the end point of a vector closer to the start point by a specified percentage
+    of the total distance between the two points.
+
+    :param start: Tuple (x1, y1) - starting point of the vector
+    :param end: Tuple (x2, y2) - ending point of the vector
+    :param percentage: Float - percentage to move closer (0-100)
+    :return: Tuple (x_new, y_new) - new moved point
+    """
+    # Ensure the percentage is within the range [0, 100]
+    percentage = max(0, min(100, percentage)) / 100
+
+    # Calculate the new point
+    x_new = start[0] + (end[0] - start[0]) * percentage
+    y_new = start[1] + (end[1] - start[1]) * percentage
+    return [x_new, y_new]
+
+
+def correct_end_point(config, distance):
+    percentage = config["shortest_path"][config["unit_type"]] / (distance / 100)
+    return move_point(config["start_point"], config["end_point"], percentage)
+
+
 def find_path_based_on_shortest_path(id, search_id, config):
 
     # "start_point": [15.1321449, 49.4054798],
@@ -1577,6 +1635,25 @@ def find_path_based_on_shortest_path(id, search_id, config):
     points_to_use = find_points(config, nodes_with_degree_one)
     start_point = points_to_use[0]
     end_points = points_to_use[1]
+
+    # Check if the shortest path is within tolerated distance according to the specified unit
+    # graph = build_graph(graph_data_input, [])
+    number_of_corrections = 0
+    while number_of_corrections < 2:
+        sp_results = is_shortest_path_within_distance_tolerance(config, graph, start_point, end_points)
+        if sp_results[0]:
+            print("The specified point is within unit tolerance. Distance is: " + str(sp_results[1]) + ". Continuing without correction.")
+            break
+        else:
+            print("The specified point is not within unit tolerance. The distance is: " + str(sp_results[1]) + ". Moving point closer to he source point.")
+            corrected_coordinates = correct_end_point(config, sp_results[1])
+            config["start_point"] = corrected_coordinates
+            points_to_use = find_points(config, nodes_with_degree_one)
+            start_point = points_to_use[0]
+            end_points = points_to_use[1]
+
+        number_of_corrections += 1
+
     solutions = []
     solved_graphs = []
     logInfo("POINTS ON GRAPH FOUND\n15\n", id)
@@ -1618,15 +1695,21 @@ def find_path_based_on_shortest_path(id, search_id, config):
     # for solution in solutions:
     #     print(solution)
 
-    print(len(solved_graphs))
-    print(len(solutions))
-    for i in range(len(solved_graphs)):
-        for j in range(len(solved_graphs)):
-            if i != j:
-                if are_graphs_identical(solved_graphs[i], solved_graphs[j]):
-                    print("Graph " + solutions[i]['rings'][0]['id'] + " is same as graph " + solutions[j]['rings'][0]['id'])
-                else:
-                    if is_subgraph(solved_graphs[i], solved_graphs[j]):
-                        print("Graph " + solutions[i]['rings'][0]['id'] + " is sub-graph of graph " + solutions[j]['rings'][0]['id'])
+    try:
+        print(len(solved_graphs))
+        print(len(solutions))
+        for i in range(len(solved_graphs)):
+            for j in range(len(solved_graphs)):
+                if i != j:
+                    if are_graphs_identical(solved_graphs[i], solved_graphs[j]):
+                        print("Graph " + solutions[i]['rings'][0]['id'] + " is same as graph " + solutions[j]['rings'][0]['id'])
+                    else:
+                        if is_subgraph(solved_graphs[i], solved_graphs[j]):
+                            print("Graph " + solutions[i]['rings'][0]['id'] + " is sub-graph of graph " + solutions[j]['rings'][0]['id'])
+
+    except:
+        print("Some problems with printing solutions")
 
     logInfo("DONE\n100\n", id)
+
+# print(move_point([0,0],[2,2],75))
