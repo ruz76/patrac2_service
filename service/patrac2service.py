@@ -379,11 +379,18 @@ def calculate_path_search():
                     "log_level": "debug",
                     "gpkg_path": os.path.join(serviceDataPath, "projekty", content["search_id"], "line_search", "data.gpkg"),
                     "output_dir": os.path.join(serviceDataPath, id),
+                    "shortest_path": {
+                        "handler": 4000,
+                        "pedestrian": 4000,
+                        "rider": 7000,
+                        "quad_bike": 10000,
+                        "undefined": 10000
+                    },
                     "covers": {
                         "handler": 12,
                         "pedestrian": 12,
-                        "rider": 16,
-                        "quad_bike": 20
+                        "rider": 18,
+                        "quad_bike": 25
                     },
                     "searchers": {
                         "handler": 1,
