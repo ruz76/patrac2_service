@@ -7,7 +7,7 @@ import json
 from PyQt5.QtCore import QVariant, QDateTime
 from datetime import datetime, timedelta
 
-with open("/media/jencek/Elements1/patrac/patracdata_patrac2/service/data/5777f35e-9173-4f83-bf30-453ab39340f3/471165_solution.json") as pp:
+with open("/media/jencek/Elements1/patrac/patracdata_patrac2/service/data/cf3d7f48-5691-4f3c-9174-4f7351f8795b/1228436_solution.json") as pp:
     data = json.load(pp)
 
 print(data)
@@ -73,6 +73,6 @@ for ring in data['rings']:
         pr.addFeatures([feature])
 
         pos += 1
-
+    break
 
 layer.triggerRepaint()

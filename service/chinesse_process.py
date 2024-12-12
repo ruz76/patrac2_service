@@ -329,8 +329,10 @@ def get_table_data(gpkg_path, table_name, fields):
     return features_output
 
 def are_on_the_same_position(coord1, coord2, tolerance):
-    # TODO maybe check the distance
-    if coord1[0] == coord2[0] and coord1[1] == coord2[1]:
+    deltax = coord1[0] - coord2[0]
+    deltay = coord1[1] - coord2[1]
+    distance = math.hypot(deltax, deltay)
+    if distance < tolerance:
         return True
     else:
         return False
@@ -341,54 +343,61 @@ def get_points_on_path(gpkg_path, table_name):
     output_coords_sequence = []
     pos = 0
     coords_0 = None
-    with fiona.open(gpkg_path, layer=table_name) as layer:
-        for feature in layer:
-            geometry = shape(feature["geometry"])
-            coords = geometry.coords
-            coords_fixed = coords
-            if pos == 0:
-                coords_0 = coords_fixed
-            # print(feature['properties']['ord'])
-            if pos == 1:
-                if are_on_the_same_position(coords_0[0], coords_fixed[0], 0):
-                    # The first point on line1 is at the same position as first point of the line2
-                    # So flip the line1
-                    coords_0_fixed = coords_0[::-1]
-                    coords_1_fixed = coords_fixed
-                if are_on_the_same_position(coords_0[len(coords_0) - 1], coords_fixed[0], 0):
-                    # The last point on line1 is at the same position as first point of the line2
-                    # Do not flip anything
-                    coords_0_fixed = coords_0
-                    coords_1_fixed = coords_fixed
-                if are_on_the_same_position(coords_0[0], coords_fixed[len(coords_fixed) - 1], 0):
-                    # The first point on line1 is at the same position as last point of the line2
-                    # Flip the line1
-                    coords_0_fixed = coords_0[::-1]
-                    # Flip the line2
-                    coords_1_fixed = coords_fixed[::-1]
-                if are_on_the_same_position(coords_0[len(coords_0) - 1], coords_fixed[len(coords_fixed) - 1], 0):
-                    # The last point on line1 is at the same position as last point of the line2
-                    # Do not the line1
-                    coords_0_fixed = coords_0
-                    # Flip the line2
-                    coords_1_fixed = coords_fixed[::-1]
-                for coord in coords_0_fixed:
-                    # print(coord)
-                    output_coords_sequence.append([coord[0], coord[1]])
-                for coord in coords_1_fixed:
-                    # print(coord)
-                    output_coords_sequence.append([coord[0], coord[1]])
-            if pos > 1:
-                # if feature['properties']['source_path'] != feature['properties']['target_path']:
-                #     coords_fixed = coords[::-1]
-                if not are_on_the_same_position(output_coords_sequence[len(output_coords_sequence) - 1], coords_fixed[0], 0):
-                    # The line N+1 does not have the first point on the last point of the line N
-                    # Flip the line N+1
-                    coords_fixed = coords[::-1]
-                for coord in coords_fixed:
-                    # print(coord)
-                    output_coords_sequence.append([coord[0], coord[1]])
-            pos += 1
+    tolerance = 0.00001  # ~1 metr
+    try:
+        with fiona.open(gpkg_path, layer=table_name) as layer:
+            for feature in layer:
+                geometry = shape(feature["geometry"])
+                # print(feature['properties']['ord'])
+                coords = geometry.coords
+                coords_fixed = coords
+                if pos == 0:
+                    coords_0 = coords_fixed
+                # print(feature['properties']['ord'])
+                if pos == 1:
+                    # TODO Do not check single points but start and end together and compare the distances
+                    if are_on_the_same_position(coords_0[0], coords_fixed[0], tolerance):
+                        # The first point on line1 is at the same position as first point of the line2
+                        # So flip the line1
+                        coords_0_fixed = coords_0[::-1]
+                        coords_1_fixed = coords_fixed
+                    if are_on_the_same_position(coords_0[len(coords_0) - 1], coords_fixed[0], tolerance):
+                        # The last point on line1 is at the same position as first point of the line2
+                        # Do not flip anything
+                        coords_0_fixed = coords_0
+                        coords_1_fixed = coords_fixed
+                    if are_on_the_same_position(coords_0[0], coords_fixed[len(coords_fixed) - 1], tolerance):
+                        # The first point on line1 is at the same position as last point of the line2
+                        # Flip the line1
+                        coords_0_fixed = coords_0[::-1]
+                        # Flip the line2
+                        coords_1_fixed = coords_fixed[::-1]
+                    if are_on_the_same_position(coords_0[len(coords_0) - 1], coords_fixed[len(coords_fixed) - 1], tolerance):
+                        # The last point on line1 is at the same position as last point of the line2
+                        # Do not the line1
+                        coords_0_fixed = coords_0
+                        # Flip the line2
+                        coords_1_fixed = coords_fixed[::-1]
+                    for coord in coords_0_fixed:
+                        # print(coord)
+                        output_coords_sequence.append([coord[0], coord[1]])
+                    for coord in coords_1_fixed:
+                        # print(coord)
+                        output_coords_sequence.append([coord[0], coord[1]])
+                if pos > 1:
+                    # if feature['properties']['source_path'] != feature['properties']['target_path']:
+                    #     coords_fixed = coords[::-1]
+                    if not are_on_the_same_position(output_coords_sequence[len(output_coords_sequence) - 1], coords_fixed[0], tolerance):
+                        # The line N+1 does not have the first point on the last point of the line N
+                        # Flip the line N+1
+                        coords_fixed = coords[::-1]
+                    for coord in coords_fixed:
+                        # print(coord)
+                        output_coords_sequence.append([coord[0], coord[1]])
+                pos += 1
+    except Exception as e:
+        print('Unexpected error' + str(e))
+
     return output_coords_sequence
 
 def save_layer_as_geojson(gpkg_path, table_name, fields, output_path):
@@ -1039,12 +1048,13 @@ def solve_graph(graph, config, name):
         path_length = edge_sum(eulerian_graph)/1000.0
         duplicate_length = path_length - in_length
 
-        info = "Component: " + str(component_id) + "\n"
+        info = "Component: " + str(component_id) + " of graph " + str(name) + "\n"
         info += "Total length of roads: %.3f km\n" % in_length
         info += "Total length of path: %.3f km\n" % path_length
         info += "Length of sections visited twice: %.3f km\n" % duplicate_length
 
         print(info)
+        print(nodes)
 
         create_layer(config, eulerian_graph, nodes, name + '_' + str(component_id))
         with open(os.path.join(config['output_dir'], name + '_' + str(component_id) + '_nodes_sequence.json'), 'w') as f:
@@ -1124,11 +1134,15 @@ def create_layer(config, graph, nodes, name):
         # print(str(u) + " " + str(v))
         # print(v)
         # print(graph[u][v])
+        query = ""
         if 0 in graph[u][v] and 'id' in graph[u][v][0]:
-            queries.append("insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v][0]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")")
+            query = "insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v][0]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")"
         else:
             if 'id' in graph[u][v]:
-                queries.append("insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")")
+                query = "insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")"
+        if query != "":
+            # print(query)
+            queries.append(query)
 
     run_queries(config['gpkg_path'], queries)
     run_query(config['gpkg_path'], 'delete from chpostman_path_export')
