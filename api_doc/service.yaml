@@ -480,7 +480,7 @@ paths:
                     Vysvětlení výčtu je v souboru enums.json.
                     V případě volby undefined se cílové místo nemodifikuje a k daným alternativám je uveden nejvhodnější prostředek.
                   type: string
-                  enum: [ "undefined", "handler", "phalanx_person", "horse_rider", "vehicle_driver", "drone", "diver", "other" ]
+                  enum: [ "undefined", "handler", "pedestrian", "rider", "quad_bike" ]
                   default: "undefined"
                   example: "handler"
                 coordinates:
