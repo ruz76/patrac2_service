@@ -22,6 +22,12 @@
         {"diver": "potápěč"},
         {"other": "ostatní"}
       ],
+      "unit_types_lines": [
+        {"handler": "psovod"},
+        {"pedestrian": "chodec"},
+        {"rider": "jezdec"},
+        {"quad_bike": "čtyřkolka"}
+      ],
       "person_types": [
         {"child_1_3": "dítě 1-3"},
         {"child_4_6": "dítě 4-6"},
