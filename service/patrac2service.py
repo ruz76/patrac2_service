@@ -382,21 +382,27 @@ def calculate_path_search():
                     "shortest_path": {
                         "handler": 4000,
                         "pedestrian": 4000,
-                        "rider": 7000,
+                        "horse_rider": 7000,
                         "quad_bike": 10000,
+                        "car": 10000,
+                        "motorcycle": 10000,
                         "undefined": 10000
                     },
                     "covers": {
                         "handler": 12,
                         "pedestrian": 12,
-                        "rider": 18,
-                        "quad_bike": 25
+                        "horse_rider": 18,
+                        "quad_bike": 25,
+                        "car": 25,
+                        "motorcycle": 25
                     },
                     "searchers": {
                         "handler": 1,
                         "pedestrian": 1,
-                        "rider": 2,
-                        "quad_bike": 3
+                        "horse_rider": 2,
+                        "quad_bike": 3,
+                        "car": 1,
+                        "motorcycle": 1
                     },
                     "unit_type": content['unit_type'],
                     "sectors": [],

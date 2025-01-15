@@ -25,8 +25,10 @@
       "unit_types_lines": [
         {"handler": "psovod"},
         {"pedestrian": "chodec"},
-        {"rider": "jezdec"},
-        {"quad_bike": "čtyřkolka"}
+        {"horse_rider": "jezdec na koni"},
+        {"quad_bike": "čtyřkolka"},
+        {"car": "auto"},
+        {"motorcycle": "motorka"}
       ],
       "person_types": [
         {"child_1_3": "dítě 1-3"},
