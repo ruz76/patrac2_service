@@ -592,6 +592,39 @@ paths:
                 example:
                   status: "2024-10-04"
 
+  /suggest:
+    get:
+      summary: Vrací seznam míst, které začínají na daný řetězec (parametr query).
+      description: |
+        Vrací seznam míst, které začínají na daný řetězec (parametr query).
+        Seznam obsahuje souřadnice lattitude a longitude daného místa.
+        Databáze obsahuje obce a části obcí ČR.
+      operationId: suggest
+      parameters:
+        - name: query
+          description: Hledaný řetězec.
+          in: query
+          required: true
+          schema:
+            type: string
+            example: Ostrava
+        - name: max_results
+          description: Maximální počet vrácených záznamů.
+          in: query
+          required: false
+          schema:
+            type: number
+            example: 20
+            default: 10
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Seznam míst ve struktuře popsané v places_sample.json
+
 components:
   schemas:
     Report:

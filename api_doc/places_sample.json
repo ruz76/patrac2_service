@@ -1,0 +1,92 @@
+[
+  {
+    "id": "99074",
+    "kraj_id": "OL",
+    "lat": "49.8120879737148",
+    "lon": "17.4776137308257",
+    "name": "\u010cabov\u00e1",
+    "okres_id": "3805",
+    "upresneni": "Olomouc, Moravsk\u00fd Beroun"
+  },
+  {
+    "id": "57592",
+    "kraj_id": "PL",
+    "lat": "49.5340319160405",
+    "lon": "13.5008025498393",
+    "name": "\u010cabuz\u00ed",
+    "okres_id": "3406",
+    "upresneni": "Plze\u0148-jih, Jarov"
+  },
+  {
+    "id": "18139",
+    "kraj_id": "ST",
+    "lat": "50.1759024946259",
+    "lon": "14.1372457449971",
+    "name": "\u010cab\u00e1rna",
+    "okres_id": "3203",
+    "upresneni": "Kladno, Cvr\u010dovice"
+  },
+  {
+    "id": "18171",
+    "kraj_id": "PA",
+    "lat": "49.7416045869893",
+    "lon": "16.0675709503136",
+    "name": "\u010cachnov",
+    "okres_id": "3603",
+    "upresneni": "Chrudim, Krouna"
+  },
+  {
+    "id": "568490",
+    "kraj_id": "VY",
+    "lat": "49.6952019923407",
+    "lon": "15.6085909134291",
+    "name": "\u010cachot\u00edn",
+    "okres_id": "3601",
+    "upresneni": "Havl\u00ed\u010dk\u016fv Brod"
+  },
+  {
+    "id": "18180",
+    "kraj_id": "VY",
+    "lat": "49.6942384078489",
+    "lon": "15.6095813225281",
+    "name": "\u010cachot\u00edn",
+    "okres_id": "3601",
+    "upresneni": "Havl\u00ed\u010dk\u016fv Brod, \u010cachot\u00edn"
+  },
+  {
+    "id": "535621",
+    "kraj_id": "ST",
+    "lat": "50.2754693679835",
+    "lon": "14.9459248155475",
+    "name": "\u010cachovice",
+    "okres_id": "3207",
+    "upresneni": "Mlad\u00e1 Boleslav"
+  },
+  {
+    "id": "18198",
+    "kraj_id": "ST",
+    "lat": "50.2729059797703",
+    "lon": "14.9428108394337",
+    "name": "\u010cachovice",
+    "okres_id": "3207",
+    "upresneni": "Mlad\u00e1 Boleslav, \u010cachovice"
+  },
+  {
+    "id": "555941",
+    "kraj_id": "PL",
+    "lat": "49.2654280816383",
+    "lon": "13.3025806770193",
+    "name": "\u010cachrov",
+    "okres_id": "3404",
+    "upresneni": "Klatovy"
+  },
+  {
+    "id": "18228",
+    "kraj_id": "PL",
+    "lat": "49.2667876201844",
+    "lon": "13.3028052224067",
+    "name": "\u010cachrov",
+    "okres_id": "3404",
+    "upresneni": "Klatovy, \u010cachrov"
+  }
+]

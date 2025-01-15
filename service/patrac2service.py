@@ -1,4 +1,4 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 import json, uuid
 from grass_process import *
 from chinesse_process import *
@@ -11,7 +11,16 @@ from shapely.geometry import shape
 from shapely.geometry import Point
 from threading import Thread
 
+def get_places():
+    with open('places.json') as json_file:
+        data = json.load(json_file)
+        return data
+
 app = Flask(__name__)
+app.config['places'] = sorted(
+    get_places(),
+    key=lambda x: x['name'].lower()
+)
 
 def get_region(x, y):
     with fiona.open(os.path.join(dataPath, 'cr', 'vusc.shp'), 'r', encoding='utf-8') as kraje:
@@ -435,6 +444,35 @@ def calculate_path_search():
         return get_400_response(message)
     else:
         return get_ok_response(id, 'calculate_path_search')
+
+@app.route('/suggest', methods=['GET'])
+def suggest():
+
+    query = request.args.get('query', '').lower()
+    if not query:
+        return jsonify([])  # Pokud není dotaz, vrať prázdné pole
+
+    results = []
+    count = 0
+    max_results = 10
+
+
+    max_results_input = request.args.get('max_results', '')
+    if max_results_input:
+        try:
+            max_results = int(max_results_input)
+        except:
+            print("Wrong max results input")
+
+    for item in app.config['places']:
+        if item['name'].lower().startswith(query):
+            results.append(item)
+            count += 1
+            if count == max_results:
+                break
+
+    return jsonify(results)
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
