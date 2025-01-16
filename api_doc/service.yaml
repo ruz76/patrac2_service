@@ -625,6 +625,47 @@ paths:
                 type: array
                 description: Seznam míst ve struktuře popsané v places_sample.json
 
+  /clean_cache:
+    get:
+      summary: Vyčistí úložiště služby.
+      description: |
+        Vymaže všechny projekty.
+        Vymaže všechny logy.
+        Maže data v config.py/serviceStoragePath
+      operationId: clean_cache
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    description: Stav zpracování
+                    type: string
+                    example: "OK"
+                  message:
+                    description: Zpráva o stavu zpracování
+                    type: string
+                    example: "Cache has been cleaned"
+                required:
+                  - status
+                  - message
+                example:
+                  status: "OK"
+                  message: "Cache has been cleaned"
+        "400":
+          description: |
+            Chyba 400 nastane v případě, že např do adresáře aktuálně někdo zapisuje nebo má otevřen soubor.
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "ERROR cleaning the cache"
+
 components:
   schemas:
     Report:

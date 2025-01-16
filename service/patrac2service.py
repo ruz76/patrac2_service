@@ -10,6 +10,7 @@ import fiona
 from shapely.geometry import shape
 from shapely.geometry import Point
 from threading import Thread
+import shutil
 
 def get_places():
     with open('places.json') as json_file:
@@ -21,6 +22,14 @@ app.config['places'] = sorted(
     get_places(),
     key=lambda x: x['name'].lower()
 )
+
+def clear_directory(directory_path):
+    for item in os.listdir(directory_path):
+        item_path = os.path.join(directory_path, item)
+        if os.path.isfile(item_path) or os.path.islink(item_path):
+            os.unlink(item_path)  # Deletes file or link
+        elif os.path.isdir(item_path):
+            shutil.rmtree(item_path)  # Deletes directory
 
 def get_region(x, y):
     with fiona.open(os.path.join(dataPath, 'cr', 'vusc.shp'), 'r', encoding='utf-8') as kraje:
@@ -473,6 +482,19 @@ def suggest():
 
     return jsonify(results)
 
+@app.route('/clean_cache', methods=['POST'])
+def clean_cache():
+    try:
+        clear_directory(serviceStoragePath)
+        os.mkdir(os.path.join(serviceStoragePath, 'data'))
+        os.mkdir(os.path.join(serviceStoragePath, 'data', 'projekty'))
+        os.mkdir(os.path.join(serviceStoragePath, 'logs'))
+
+        return jsonify({"status": "OK", "message": "Cache has been cleaned"})
+
+    except Exception as e:
+        print(e)
+        return get_400_response('ERROR cleaning the cache')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
