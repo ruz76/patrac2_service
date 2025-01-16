@@ -360,7 +360,7 @@ def delete_sector():
 
 @app.route("/version", methods=['GET'])
 def version():
-    resp = Response(response=json.dumps({"version": "2024-12-17"}),
+    resp = Response(response=json.dumps({"version": "2025-01-16"}),
                     status=200,
                     mimetype="application/json")
     return resp
@@ -482,7 +482,7 @@ def suggest():
 
     return jsonify(results)
 
-@app.route('/clean_cache', methods=['POST'])
+@app.route('/clean_cache', methods=['GET'])
 def clean_cache():
     try:
         clear_directory(serviceStoragePath)
