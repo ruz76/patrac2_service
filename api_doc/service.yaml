@@ -623,6 +623,8 @@ paths:
             application/json:
               schema:
                 type: array
+                items:
+                  type: object
                 description: Seznam míst ve struktuře popsané v places_sample.json
 
   /clean_cache:
