@@ -402,90 +402,11 @@ def get_points_on_path(gpkg_path, table_name):
 
     return output_coords_sequence, segment_grades
 
-def save_layer_as_geojson(gpkg_path, table_name, fields, output_path):
-    features_output = []
-    print('Before fiona open')
-    # print(fiona.__version__)
-    with fiona.open(gpkg_path, layer=table_name) as layer:
-        for feature in layer:
-            # print(feature)
-            # print(feature["geometry"])
-            # print(shape(feature["geometry"]))
-            # try:
-            #     print(mapping(shape(feature["geometry"])))
-            # except Exception as e:
-            #     print(e)
-            # feature_output = {
-            #     "type": "Feature",
-            #     "properties": {},
-            #     "geometry": mapping(shape(feature["geometry"]))
-            # }
-            feature_output = {
-                "type": "Feature",
-                "properties": {},
-                "geometry": feature["geometry"]
-            }
-            # print('Before fields')
-            for field in fields:
-                feature_output['properties'][field] = feature['properties'][field]
-            # print('After fields')
-            features_output.append(feature_output)
-    data = {
-        "type": "FeatureCollection",
-        "features": features_output
-    }
-    print('Before write')
-    with open(output_path, 'w') as out:
-        json.dump(data, out)
-
-def save_layer_as_shp(gpkg_path, table_name, label, output_path):
-    vector = QgsVectorLayer(gpkg_path + '|layername=' + table_name, label, "ogr")
-    crs = QgsCoordinateReferenceSystem(4326)
-    print('Saving into: ' + output_path)
-    QgsVectorFileWriter.writeAsVectorFormat(vector, output_path, "utf-8", crs, "ESRI Shapefile")
-
-def array_to_in_param(arr, quotes=False):
-    output = ''
-    for item in arr:
-        if quotes:
-            output += "'" + str(item) + "', "
-        else:
-            output += str(item) + ', '
-    return output[:-2]
-
-def prepare_data(config):
-    output_data = {}
-    sectors = array_to_in_param(config['sectors'])
-
-    run_query(config['gpkg_path'], 'DELETE FROM sectors')
-    run_query(config['gpkg_path'], 'INSERT INTO sectors SELECT * FROM sectors_all WHERE id IN (' + sectors + ')')
-
-    run_query(config['gpkg_path'], 'delete from sectors_by_path_with_neighbors_agg_export')
-    run_query(config['gpkg_path'], "insert into sectors_by_path_with_neighbors_agg_export (id, type_5_length_m) select id, type_5_length_m from sectors_by_path_with_neighbors_agg WHERE id IN (" + sectors + ") order by type_5_length_m desc")
-    output_data['sectors_by_path_with_neighbors_agg'] = get_table_data(config['gpkg_path'], 'sectors_by_path_with_neighbors_agg_export', ['id', 'type_5_length_m'])
-
-    run_query(config['gpkg_path'], 'delete from sum_length_export')
-    run_query(config['gpkg_path'], "insert into sum_length_export (sum_length_m) select round(sum(length_m) / 1000) sum_length_m from sectors_by_path_type WHERE id IN (" + sectors + ")")
-    output_data['sum_length'] = get_table_data(config['gpkg_path'], 'sum_length_export', ['sum_length_m'])
-
-    run_query(config['gpkg_path'], 'delete from sectors_with_paths_lengths_export')
-    run_query(config['gpkg_path'], "insert into sectors_with_paths_lengths_export (id, length_m, x, y) select sp.id, length_m, ST_X(ST_Centroid(s.geom)) x, ST_Y(ST_Centroid(s.geom)) y from sectors_with_pl sp join sectors s on (s.id IN (" + sectors + ") AND s.id = sp.id)")
-    output_data['sectors_with_paths_lengths'] = get_table_data(config['gpkg_path'], 'sectors_with_paths_lengths_export', ['id', 'length_m', 'x', 'y'])
-
-    run_query(config['gpkg_path'], 'delete from sectors_neighbors_export')
-    run_query(config['gpkg_path'], "insert into sectors_neighbors_export (id, string_agg) select id, string_agg from sectors_neighbors WHERE id IN (" + sectors + ")")
-    output_data['sectors_neighbors'] = get_table_data(config['gpkg_path'], 'sectors_neighbors_export', ['id', 'string_agg'])
-
-    run_query(config['gpkg_path'], 'delete from sectors_envelope_export')
-    run_query(config['gpkg_path'], "insert into sectors_envelope_export (minx, miny, maxx, maxy) select MIN(ST_MinX(geom)) AS min_x, MIN(ST_MinY(geom)) AS min_y, MAX(ST_MaxX(geom)) AS max_x, MAX(ST_MaxY(geom)) AS max_y FROM sectors")
-    output_data['sectors_envelope'] = get_table_data(config['gpkg_path'], 'sectors_envelope_export', ['minx', 'miny', 'maxx', 'maxy'])
-
-    return output_data
-
 
 def prepare_data_for_graph_based_on_polygon(config, grades):
 
     run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
+
     sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005)) and ways.grade in (" + grades + ")"
     print(sql)
     run_query(config['gpkg_path'], sql)
@@ -493,76 +414,17 @@ def prepare_data_for_graph_based_on_polygon(config, grades):
 
     return output_data
 
-def prepare_data_for_graph(config, sectors_list, grades):
-    sectors = array_to_in_param(sectors_list)
+def prepare_data_for_graph(config, grades):
 
     run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
-    # sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways join ways_for_sectors wfs on (grade in (" + grades + ") and id IN (" + sectors + ") and ways.gid = wfs.gid)"
-    # print(sql)
+
     sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways where grade in (" + grades + ")"
     print(sql)
+
     run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
 
     return output_data
-
-    # TODO - seems that the implementation is wrong
-    # This is an optimisation where we removed nodes that are not on intersection or are not isolated nodes (end of line)
-    nodes = {
-
-    }
-
-    for way in output_data:
-        if way['source'] in nodes:
-            nodes[way['source']] += 1
-        else:
-            nodes[way['source']] = 1
-
-        if way['target'] in nodes:
-            nodes[way['target']] += 1
-        else:
-            nodes[way['target']] = 1
-
-    output_data_fixed = []
-    for key in nodes:
-        if nodes[key] == 2:
-            # This should be a node that is not necessary since it is not a node on intersection, and it is not an isolated node
-            ways_to_merge = []
-            for way in output_data:
-                if way['source'] == key or way['target'] == key:
-                    ways_to_merge.append(way)
-            if len(ways_to_merge) > 1:
-                # We start on 0 source and end on 1 target
-                if ways_to_merge[0]['target'] == ways_to_merge[1]['source']:
-                    merged_way = ways_to_merge[0]
-                    merged_way['target'] = ways_to_merge[1]['target']
-                    merged_way['length_m'] += ways_to_merge[1]['length_m']
-                    output_data_fixed.append(merged_way)
-                # We start on 0 source and end on 1 source
-                if ways_to_merge[0]['target'] == ways_to_merge[1]['target']:
-                    merged_way = ways_to_merge[0]
-                    merged_way['target'] = ways_to_merge[1]['source']
-                    merged_way['length_m'] += ways_to_merge[1]['length_m']
-                    output_data_fixed.append(merged_way)
-                # We start on 1 source and end on 0 target
-                if ways_to_merge[0]['source'] == ways_to_merge[1]['target']:
-                    merged_way = ways_to_merge[1]
-                    merged_way['target'] = ways_to_merge[0]['target']
-                    merged_way['length_m'] += ways_to_merge[0]['length_m']
-                    output_data_fixed.append(merged_way)
-                # We start on 0 target and end on 1 target
-                if ways_to_merge[0]['source'] == ways_to_merge[1]['source']:
-                    merged_way = ways_to_merge[1]
-                    merged_way['source'] = ways_to_merge[0]['target']
-                    merged_way['length_m'] += ways_to_merge[0]['length_m']
-                    output_data_fixed.append(merged_way)
-        else:
-            # These nodes should be correct
-            for way in output_data:
-                if way['source'] == key or way['target'] == key:
-                    output_data_fixed.append(way)
-
-    return output_data_fixed
 
 def build_graph(features, used_edges):
     # print(nx.__version__)
@@ -649,6 +511,7 @@ def solve_graph(graph, config, name):
 
     return outputs
 
+
 def create_layer_for_polygon(config, graph, nodes, name, export=True):
     run_query(config['gpkg_path'], 'delete from chpostman_path')
     pos = 0
@@ -663,42 +526,16 @@ def create_layer_for_polygon(config, graph, nodes, name, export=True):
     run_query(config['gpkg_path'], 'delete from chpostman_path_export')
     run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, source_path, target_path, source_way, target_way, the_geom) select ch.gid, ch.ord, ch.ts, ch.source, ch.target, w.source, w.target, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ts")
 
-    print('Before export create_layer_simple_with_export')
-
-    # Crashes when running inside QGIS, so we will do not use fiona for export in QGIS but QGIS API
-    # save_layer_as_geojson(config['gpkg_path'], 'chpostman_path_export', ['gid', 'ord', 'ts'], os.path.join(config['output_dir'], name + '.geojson'))
-    if export:
-        save_layer_as_shp(config['gpkg_path'], 'chpostman_path_export', name, os.path.join(config['output_dir'], name + '.shp'))
-
-    print('After export create_layer_simple_with_export')
 
 def create_layer(config, graph, nodes, name):
     run_query(config['gpkg_path'], 'delete from chpostman_path')
     pos = 0
     ts = datetime.now()
     queries = []
-    # for u, v in pairs(nodes, False):
-    #     pos += 1
-    #     ts = ts + timedelta(seconds=1)
-    #     queries.append("insert into chpostman_path (gid, ord, ts) values (" + graph[u][v]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "')")
 
-    # Projití všech hran a vypsání jejich vah
-    # Toto funguje blbě v tom, že jsou hrany chybně za sebou poskládány
-    # for u, v, data in graph.edges(data=True):
-    #     pos += 1
-    #     ts = ts + timedelta(seconds=1)
-    #     print(str(u) + " " + str(v))
-    #     if 'id' in data:
-    #         queries.append("insert into chpostman_path (gid, ord, ts) values (" + data['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "')")
-    #         # print(f'Hrana mezi {u} a {v} má váhu {data["weight"]}')
-
-    # Tady zase s nějakého důvodu chybí ty vnitřní cesty. Tak ty vnitřní cesty chybí i u toho předtím. teyd je chyba někde jinde.
     for u, v in pairs(nodes, False):
         pos += 1
         ts = ts + timedelta(seconds=1)
-        # print(str(u) + " " + str(v))
-        # print(v)
-        # print(graph[u][v])
         query = ""
         if 0 in graph[u][v] and 'id' in graph[u][v][0]:
             query = "insert into chpostman_path (gid, ord, ts, source, target) values (" + graph[u][v][0]['id'] + ", '" + str(pos) + "', '" + str(ts).split('.')[0] + "', " + str(u) + ", " + str(v) + ")"
@@ -721,47 +558,6 @@ def create_layer(config, graph, nodes, name):
     # save_layer_as_shp(config['gpkg_path'], 'chpostman_path_export', name, os.path.join(config['output_dir'], name + '.shp'))
 
     print('After export')
-
-def get_units_grades(unit):
-    if unit == 'handler':
-        return '0, 1, 2, 3, 4, 5, 6'
-        # return '5'
-    if unit == 'pedestrian':
-        return '0, 1, 2, 3, 4, 5, 6'
-    if unit == 'horse_rider':
-        return '0, 1, 2, 3'
-    if unit == 'quad_bike':
-        return '0, 1, 2, 3'
-    if unit == 'car':
-        return '0, 1, 2, 3'
-    if unit == 'motorcycle':
-        return '0, 1, 2, 3'
-    return '0, 1, 2, 3'
-
-def solve_area(config):
-    # Reads sectors and prepares data for clustering
-    data = prepare_data(config)
-    # Returns clusters
-    clusters = get_clusters(config, data)
-    solutions = []
-    used_edges = []
-    for cluster_id in clusters:
-        # print(clusters[cluster_id]['sectors'])
-        print(clusters[cluster_id]['unit'])
-        # Prepares data in a form of nodes and edges
-        grades = get_units_grades(clusters[cluster_id]['unit'])
-        print(grades)
-        graph_data_input = prepare_data_for_graph(config, clusters[cluster_id]['sectors'], grades)
-        graph = build_graph(graph_data_input, used_edges)
-        # Remembers already used edges
-        for edge in graph_data_input:
-            used_edges.append(edge['gid'])
-        # print(graph_data_input)
-        used_edges = [] # Use this if you do not want to remove duplicities
-        graph_solution = solve_graph(graph, config, clusters[cluster_id]['unit'] + '_' + str(cluster_id))
-        solutions.append(graph_solution)
-    return solutions
-
 
 def get_shortest_path(start_node, end_node, graph):
     # print(graph)
@@ -935,31 +731,6 @@ def get_ring_polygon(config):
 
     # Soubor GeoPackage, do kterého chceme uložit polygony
     gpkg_path = config['gpkg_path']
-    # layer_name = 'new_polygon_layer'
-    #
-    # # Specifikace CRS (zde EPSG:4326, můžete upravit podle potřeby)
-    # crs = from_epsg(4326)
-    #
-    # # Definice schématu pro novou vrstvu
-    # schema = {
-    #     'geometry': 'Polygon',
-    #     'properties': {
-    #         'id': 'int',
-    #     },
-    # }
-
-    # Přidání nové vrstvy do existujícího souboru GPKG
-    # nefunguje - nevím proč
-    # print(config['gpkg_path'])
-    # with fiona.open(gpkg_path, 'a', driver='GPKG', schema=schema, layer=layer_name, crs=crs) as sink:
-    #     # Přidání polygonů do nové vrstvy
-    #     for i, polygon in enumerate(polygons):
-    #         sink.write({
-    #             'geometry': mapping(polygon),
-    #             'properties': {'id': i},
-    #         })
-    #
-    # print(f'Polygony byly úspěšně uloženy do vrstvy {layer_name} v souboru {gpkg_path}.')
 
     # Soubor GeoPackage, do kterého chceme uložit polygony
     layer_name = 'new_polygon_layer'
@@ -1121,16 +892,6 @@ def are_graphs_identical(G1, G2):
     else:
         return True
 
-def export_linies_into_xy_csv(shp_path):
-    with fiona.open(shp_path) as layer:
-        with open(shp_path + ".csv", "w") as out_csv:
-            for feature in layer:
-                # print(feature["properties"]["ord"])
-                line = shape(feature["geometry"])
-                for coord in line.coords:
-                    # print(coord)
-                    out_csv.write(str(coord[0]) + ',' + str(coord[1]) + '\n')
-
 def graph_exists(solved_graphs, solved_graph):
     for i in range(len(solved_graphs)):
         if are_graphs_identical(solved_graphs[i], solved_graph):
@@ -1190,7 +951,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
     grades = ', '.join(str(n) for n in config["allowed_grades"][config["unit_type"]])
     print("GRADES: ")
     print(grades)
-    graph_data_input = prepare_data_for_graph(config, config['sectors'], grades)
+    graph_data_input = prepare_data_for_graph(config, grades)
     # print(graph_data_input)
     logInfo("GRAPH DATA PREPARED\n5\n", id)
     graph = build_graph(graph_data_input, [])
