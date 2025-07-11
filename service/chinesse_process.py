@@ -341,6 +341,7 @@ def get_points_on_path(gpkg_path, table_name):
     print('Before fiona open')
     # print(fiona.__version__)
     output_coords_sequence = []
+    segment_grades = []
     pos = 0
     coords_0 = None
     tolerance = 0.00001  # ~1 metr
@@ -348,6 +349,7 @@ def get_points_on_path(gpkg_path, table_name):
         with fiona.open(gpkg_path, layer=table_name) as layer:
             for feature in layer:
                 geometry = shape(feature["geometry"])
+                segment_grades.append(feature["properties"]["grade"])
                 # print(feature['properties']['ord'])
                 coords = geometry.coords
                 coords_fixed = coords
@@ -398,7 +400,7 @@ def get_points_on_path(gpkg_path, table_name):
     except Exception as e:
         print('Unexpected error' + str(e))
 
-    return output_coords_sequence
+    return output_coords_sequence, segment_grades
 
 def save_layer_as_geojson(gpkg_path, table_name, fields, output_path):
     features_output = []
@@ -481,12 +483,11 @@ def prepare_data(config):
     return output_data
 
 
-def prepare_data_for_graph_based_on_polygon(config):
+def prepare_data_for_graph_based_on_polygon(config, grades):
 
-    # TODO use grades as well
     run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
-    sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005))"
-    # print(sql)
+    sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005)) and ways.grade in (" + grades + ")"
+    print(sql)
     run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
 
@@ -499,6 +500,7 @@ def prepare_data_for_graph(config, sectors_list, grades):
     # sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways join ways_for_sectors wfs on (grade in (" + grades + ") and id IN (" + sectors + ") and ways.gid = wfs.gid)"
     # print(sql)
     sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways where grade in (" + grades + ")"
+    print(sql)
     run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
 
@@ -614,16 +616,23 @@ def solve_graph(graph, config, name):
         create_layer(config, eulerian_graph, nodes, name + '_' + str(component_id))
         with open(os.path.join(config['output_dir'], name + '_' + str(component_id) + '_nodes_sequence.json'), 'w') as f:
             json.dump(nodes, f)
-        points = get_points_on_path(config['gpkg_path'], 'chpostman_path_export')
+        points, segments_grades = get_points_on_path(config['gpkg_path'], 'chpostman_path_export')
 
-        # TODO
+        print("SEGMENTS GRADES")
+        print(segments_grades)
+
         suggested_unit_types = []
-        if path_length > 18:
-            suggested_unit_types = ["quad_bike"]
-        if path_length < 12:
-            suggested_unit_types = ["pedestrian", "handler", "horse_rider"]
-        if 12 <= path_length <= 18:
-            suggested_unit_types = ["horse_rider", "handler", "quad_bike"]
+        print(path_length)
+        for item in config["covers"]:
+            min = config["covers"][item] * 0.5
+            max = config["covers"][item] * 1.25
+            # We test if the path has only grades for current search unit type
+            grades_diff = set(segments_grades) - set(config["allowed_grades"][item])
+            if min <= (path_length * 1000) <= max and not grades_diff:
+                suggested_unit_types.append(item)
+
+        # We add the path only in the case that at least one search unit type is suggested
+        # if len(suggested_unit_types) > 0:
 
         output = {
             "id": name + '_' + str(component_id),
@@ -635,6 +644,7 @@ def solve_graph(graph, config, name):
         }
 
         outputs.append(output)
+
         component_id += 1
 
     return outputs
@@ -701,7 +711,8 @@ def create_layer(config, graph, nodes, name):
 
     run_queries(config['gpkg_path'], queries)
     run_query(config['gpkg_path'], 'delete from chpostman_path_export')
-    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, source_path, target_path, source_way, target_way, the_geom) select ch.gid, ch.ord, ch.ts, ch.source, ch.target, w.source, w.target, w.the_geom from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ts")
+    # run_query(config['gpkg_path'], "SELECT 'ALTER TABLE chpostman_path_export ADD COLUMN grade TEXT;' WHERE NOT EXISTS ( SELECT 1 FROM pragma_table_info('chpostman_path_export') WHERE name = 'grade')")
+    run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, source_path, target_path, source_way, target_way, the_geom, grade) select ch.gid, ch.ord, ch.ts, ch.source, ch.target, w.source, w.target, w.the_geom, w.grade from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ts")
 
     print('Before export')
 
@@ -776,7 +787,7 @@ def get_shortest_path(start_node, end_node, graph):
 
     return [shortest_path, shortest_path_length]
 
-def solve_one_part(start_node, end_node, config, graph_data_input, id):
+def solve_one_part(start_node, end_node, config, graph_data_input, id, grades):
     if os.path.exists(os.path.join(config['output_dir'], end_node + '_graph.json')):
         # Deserializace z JSON
         with open(os.path.join(config['output_dir'], end_node + '_graph.json'), 'r') as f:
@@ -834,7 +845,7 @@ def solve_one_part(start_node, end_node, config, graph_data_input, id):
         # print(H.nodes)
 
         get_ring_polygon(config)
-        graph_data_input_missing_edges = prepare_data_for_graph_based_on_polygon(config)
+        graph_data_input_missing_edges = prepare_data_for_graph_based_on_polygon(config, grades)
         graph_missing_edges = build_graph(graph_data_input_missing_edges, [])
         # print(graph_missing_edges)
 
@@ -1165,6 +1176,7 @@ def move_point(start, end, percentage):
 
 def correct_end_point(config, distance):
     percentage = config["shortest_path"][config["unit_type"]] / (distance / 100)
+    print(percentage)
     return move_point(config["start_point"], config["end_point"], percentage)
 
 
@@ -1174,8 +1186,10 @@ def find_path_based_on_shortest_path(id, search_id, config):
     # "start_point": [15.017469, 49.433281]
     # "source" IN (3609, 6932, 726, 6305, 712, 5028, 5841, 5788)
 
-    grades = '0, 1, 2, 3, 4, 5, 6'
-    # print(grades)
+    # grades = '0, 1, 2, 3, 4, 5, 6'
+    grades = ', '.join(str(n) for n in config["allowed_grades"][config["unit_type"]])
+    print("GRADES: ")
+    print(grades)
     graph_data_input = prepare_data_for_graph(config, config['sectors'], grades)
     # print(graph_data_input)
     logInfo("GRAPH DATA PREPARED\n5\n", id)
@@ -1191,7 +1205,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
     # Check if the shortest path is within tolerated distance according to the specified unit
     # graph = build_graph(graph_data_input, [])
     number_of_corrections = 0
-    while number_of_corrections < 2:
+    while number_of_corrections < 10:
         sp_results = is_shortest_path_within_distance_tolerance(config, graph, start_point, end_points)
         if sp_results[0]:
             print("The specified point is within unit tolerance. Distance is: " + str(sp_results[1]) + ". Continuing without correction.")
@@ -1199,7 +1213,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
         else:
             print("The specified point is not within unit tolerance. The distance is: " + str(sp_results[1]) + ". Moving point closer to he source point.")
             corrected_coordinates = correct_end_point(config, sp_results[1])
-            config["start_point"] = corrected_coordinates
+            config["end_point"] = corrected_coordinates
             points_to_use = find_points(config, nodes_with_degree_one)
             start_point = points_to_use[0]
             end_points = points_to_use[1]
@@ -1214,7 +1228,7 @@ def find_path_based_on_shortest_path(id, search_id, config):
         # We take only first 10 points
         step = round(70 / 10)
         for end_point in end_points[i]:
-            solution_results = solve_one_part(str(start_point[0]), str(end_point['id']), config, graph_data_input, id)
+            solution_results = solve_one_part(str(start_point[0]), str(end_point['id']), config, graph_data_input, id, grades)
             if solution_results is not None:
                 percent = 15 + (pos_end_points + 1) * step
                 logInfo("SOLVED PATH " + str(pos_end_points) + " FROM " + str(len(end_points[i])) + " POINTS\n" + str(percent) + "\n", id)

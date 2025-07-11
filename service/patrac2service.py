@@ -393,40 +393,27 @@ def calculate_path_search():
                 for coord in content['coordinates']:
                     xy = transform_coordinates_to_4326(coord[0], coord[1], epsg)
                     coords.append([xy[0], xy[1]])
-            config = {
-                    "log_level": "debug",
-                    "gpkg_path": os.path.join(serviceDataPath, "projekty", content["search_id"], "line_search", "data.gpkg"),
-                    "output_dir": os.path.join(serviceDataPath, id),
-                    "shortest_path": {
-                        "handler": 4000,
-                        "pedestrian": 4000,
-                        "horse_rider": 7000,
-                        "quad_bike": 10000,
-                        "car": 10000,
-                        "motorcycle": 10000,
-                        "undefined": 10000
-                    },
-                    "covers": {
-                        "handler": 12,
-                        "pedestrian": 12,
-                        "horse_rider": 18,
-                        "quad_bike": 25,
-                        "car": 25,
-                        "motorcycle": 25
-                    },
-                    "searchers": {
+
+            config = {}
+            with open("line_search_config.json") as cc:
+                config = json.load(cc)
+
+            config["log_level"] = "debug"
+            config["gpkg_path"] = os.path.join(serviceDataPath, "projekty", content["search_id"], "line_search", "data.gpkg")
+            config["output_dir"] = os.path.join(serviceDataPath, id)
+            config["searchers"] =  {
                         "handler": 1,
                         "pedestrian": 1,
                         "horse_rider": 2,
                         "quad_bike": 3,
                         "car": 1,
                         "motorcycle": 1
-                    },
-                    "unit_type": content['unit_type'],
-                    "sectors": [],
-                    "start_point": coords[0],
-                    "end_point": coords[1]
-                }
+                    }
+            config["unit_type"] =  content['unit_type']
+            config["sectors"] = []
+            config["start_point"] = coords[0]
+            config["end_point"] = coords[1]
+
             if not os.path.exists(config['output_dir']):
                 os.makedirs(config['output_dir'])
             with open(os.path.join(config['output_dir'], "config.json"), "w") as config_out:

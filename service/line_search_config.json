@@ -1,0 +1,28 @@
+{
+  "shortest_path": {
+    "handler": 4000,
+    "pedestrian": 4000,
+    "horse_rider": 7000,
+    "quad_bike": 10000,
+    "car": 10000,
+    "motorcycle": 10000,
+    "undefined": 10000
+  },
+  "covers": {
+    "handler": 15000,
+    "pedestrian": 12000,
+    "horse_rider": 18000,
+    "quad_bike": 25000,
+    "car": 25000,
+    "motorcycle": 25000
+  },
+  "allowed_grades": {
+    "handler": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "pedestrian": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "horse_rider": [0, 1, 2, 3, 4],
+    "quad_bike": [0, 1, 2, 3, 4],
+    "car": [0, 1, 2],
+    "motorcycle": [0, 1, 2, 3, 4, 5],
+    "undefined": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  }
+}
