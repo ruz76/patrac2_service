@@ -486,8 +486,8 @@ def solve_graph(graph, config, name):
         suggested_unit_types = []
         print(path_length)
         for item in config["covers"]:
-            min = config["covers"][item] * 0.5
-            max = config["covers"][item] * 1.25
+            min = config["covers"][item] * config["covers_fuzzy"][item][0]
+            max = config["covers"][item] * config["covers_fuzzy"][item][1]
             # We test if the path has only grades for current search unit type
             grades_diff = set(segments_grades) - set(config["allowed_grades"][item])
             if min <= (path_length * 1000) <= max and not grades_diff:

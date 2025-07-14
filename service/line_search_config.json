@@ -16,6 +16,14 @@
     "car": 25000,
     "motorcycle": 25000
   },
+  "covers_fuzzy": {
+    "handler": [0.5, 1.25],
+    "pedestrian": [0.5, 1.25],
+    "horse_rider": [0.5, 1.25],
+    "quad_bike": [0.5, 1.25],
+    "car": [0.5, 1.25],
+    "motorcycle": [0.5, 1.25]
+  },
   "allowed_grades": {
     "handler": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     "pedestrian": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
