@@ -228,8 +228,19 @@ def calculate_sectors():
            'percentage' in content:
             epsg = 4326
             coords = content['coordinates']
+            coords_4326 = content['coordinates']
             if 'epsg' in content:
                 epsg = content['epsg']
+            if epsg != 4326:
+                coords_4326 = []
+                for coord in content['coordinates']:
+                    try:
+                        x = float(coord[0])
+                        y = float(coord[1])
+                    except:
+                        return get_400_response('Illegal inputs. Coordinates ' + str(coord[0]) + ' ' + str(coord[1]) + ' are not float numbers.')
+                    xy = transform_coordinates_to_4326(coord[0], coord[1], epsg)
+                    coords_4326.append([xy[0], xy[1]])
             if epsg != 5514:
                 coords = []
                 for coord in content['coordinates']:
@@ -251,7 +262,7 @@ def calculate_sectors():
                     else:
                         return coordinates_status[1]
 
-            thread = Thread(target=get_sectors_grass, args=(id, content['search_id'], coords, content['person_type'], content['percentage'],))
+            thread = Thread(target=get_sectors_grass, args=(id, content['search_id'], coords, content['person_type'], content['percentage'], coords_4326,))
             thread.daemon = True
             thread.start()
             with open(os.path.join(serviceStoragePath, "logs", id + ".log"), "a") as log:
@@ -488,16 +499,14 @@ def clean_cache():
 def get_percentage_rings():
     content = request.get_json(silent=True)
 
-    if 'calculated_sectors_id' in content and os.path.exists(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_coords.json")) and os.path.exists(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_settings.json")):
-        with open(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_coords.json")) as c:
-            coords = json.load(c)
+    if 'calculated_sectors_id' in content and os.path.exists(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_settings.json")):
         with open(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_settings.json")) as c:
             sectors_settings = json.load(c)
         if os.path.exists(sectors_settings['statistics'] + "_statistics.json"):
             with open(sectors_settings['statistics'] + "_statistics.json") as c:
                 statistics = json.load(c)
             report = {
-                "coordinates": coords,
+                "coordinates": sectors_settings['coordinates'],
                 "requested_ring": int(statistics[sectors_settings["person_type"]][str(sectors_settings["percentage"])]),
                 "all_rings": {k: int(v) for k, v in statistics[sectors_settings["person_type"]].items()}
             }

@@ -701,7 +701,7 @@ paths:
                   properties:
                     coordinates:
                       type: array
-                      description: Seznam souřadnic míst spatření
+                      description: Seznam souřadnic míst spatření v pořadí longitute, lattitude.
                       items:
                         type: array
                         items:
@@ -719,7 +719,7 @@ paths:
                         type: integer
                 example:
                   coordinates:
-                    - [ -718840.2494634467, -1049865.2439885025 ]
+                    - [[ 12.56067, 50.05514 ], [ 12.51067, 50.05614 ]]
                   requested_ring: 1180
                   all_rings:
                     "10": 140

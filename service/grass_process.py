@@ -100,11 +100,11 @@ def create_project_grass(id, xmin, ymin, xmax, ymax, region):
     grass_operations.export(KRAJ_DATA_PATH, pluginPath, xmin, ymin, xmax, ymax, NEW_PROJECT_PATH, id)
 
 
-def get_sectors_grass(id, search_id, coordinates, person_type, percentage):
+def get_sectors_grass(id, search_id, coordinates, person_type, percentage, coordinates_4326):
     with open(os.path.join(serviceDataPath, id + "_coords.json"), "w") as c:
         json.dump(coordinates, c)
     with open(os.path.join(serviceDataPath, id + "_settings.json"), "w") as c:
-        json.dump({"person_type" : person_type, "percentage": percentage, "statistics": "lsom"}, c)
+        json.dump({"person_type" : person_type, "percentage": percentage, "statistics": "lsom", "coordinates": coordinates_4326}, c)
     grass_operations.get_sectors_grass(id, search_id, person_type, str(percentage))
 
 
