@@ -103,6 +103,8 @@ def create_project_grass(id, xmin, ymin, xmax, ymax, region):
 def get_sectors_grass(id, search_id, coordinates, person_type, percentage):
     with open(os.path.join(serviceDataPath, id + "_coords.json"), "w") as c:
         json.dump(coordinates, c)
+    with open(os.path.join(serviceDataPath, id + "_settings.json"), "w") as c:
+        json.dump({"person_type" : person_type, "percentage": percentage, "statistics": "lsom"}, c)
     grass_operations.get_sectors_grass(id, search_id, person_type, str(percentage))
 
 

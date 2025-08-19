@@ -483,5 +483,33 @@ def clean_cache():
         print(e)
         return get_400_response('ERROR cleaning the cache')
 
+
+@app.route("/get_percentage_rings", methods=['POST'])
+def get_percentage_rings():
+    content = request.get_json(silent=True)
+
+    if 'calculated_sectors_id' in content and os.path.exists(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_coords.json")) and os.path.exists(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_settings.json")):
+        with open(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_coords.json")) as c:
+            coords = json.load(c)
+        with open(os.path.join(serviceStoragePath, "data", content['calculated_sectors_id'] + "_settings.json")) as c:
+            sectors_settings = json.load(c)
+        if os.path.exists(sectors_settings['statistics'] + "_statistics.json"):
+            with open(sectors_settings['statistics'] + "_statistics.json") as c:
+                statistics = json.load(c)
+            report = {
+                "coordinates": coords,
+                "requested_ring": int(statistics[sectors_settings["person_type"]][str(sectors_settings["percentage"])]),
+                "all_rings": {k: int(v) for k, v in statistics[sectors_settings["person_type"]].items()}
+            }
+            resp = Response(response=json.dumps(report),
+                            status=200,
+                            mimetype="application/json")
+            return resp
+        else:
+            return get_400_response('Requested statistics does not exists: ' + sectors_settings['statistics'])
+    else:
+        return get_400_response('Illegal inputs.')
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)

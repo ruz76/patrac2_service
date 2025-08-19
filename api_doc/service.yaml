@@ -668,6 +668,83 @@ paths:
                 example:
                   errorMessage: "ERROR cleaning the cache"
 
+  /get_percentage_rings:
+    post:
+      summary: Vrátí vzdálenosti pro typ osoby a procenta.
+      description: |
+        Vrátí vzdálenosti pro typ osoby a procenta.
+        K dispozici není timeout, počítáme, že výpočet vždy doběhne v řádu sekund.
+      operationId: get_percentage_rings
+      requestBody:
+        description: Vstup v podobě JSON.
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                calculated_sectors_id:
+                  description: Identifikátor výpočtu získání sektorů
+                  type: string
+                  example: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+              required:
+                - calculated_sectors_id
+            example:
+              calculated_sectors_id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    coordinates:
+                      type: array
+                      description: Seznam souřadnic míst spatření
+                      items:
+                        type: array
+                        items:
+                          type: number
+                          format: double
+                        minItems: 2
+                        maxItems: 2
+                    requested_ring:
+                      type: integer
+                      description: Vzdálenost pro zvolený typ osoby a procenta
+                    all_rings:
+                      type: object
+                      description: Všechny vzdálenosti pro zvolený typ osoby
+                      additionalProperties:
+                        type: integer
+                example:
+                  coordinates:
+                    - [ -718840.2494634467, -1049865.2439885025 ]
+                  requested_ring: 1180
+                  all_rings:
+                    "10": 140
+                    "20": 330
+                    "30": 560
+                    "40": 870
+                    "50": 1180
+                    "60": 1760
+                    "70": 2430
+                    "80": 3220
+                    "95": 18140
+        "400":
+          description: |
+            Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
+            Např. identifikátor výpočtu sektorů neexistuje.
+            Pozn. V případě, že budeme potřebovat lépe strukturovat chybu, včetně více variant, můžeme dále rozvést.
+          content:
+            application/json:
+              schema:
+                properties:
+                  errorMessage:
+                    type: string
+                example:
+                  errorMessage: "Illegal inputs."
+
 components:
   schemas:
     Report:
