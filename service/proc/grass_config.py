@@ -11,9 +11,9 @@ dataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data\service\d
 patracDataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data"
 
 # Linux
-grass7bin_lin = 'grass'
-logsPath = "/media/jencek/Elements/patrac/patracdata_patrac2/service/logs"
-dataPath = "/media/jencek/Elements/patrac/patracdata_patrac2/service/data"
-patracDataPath = "/media/jencek/Elements/patrac/patracdata_patrac2"
+# grass7bin_lin = 'grass'
+# logsPath = "/media/jencek/Elements/patrac/patracdata_patrac2/service/logs"
+# dataPath = "/media/jencek/Elements/patrac/patracdata_patrac2/service/data"
+# patracDataPath = "/media/jencek/Elements/patrac/patracdata_patrac2"
 
 
