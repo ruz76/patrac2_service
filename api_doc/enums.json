@@ -15,20 +15,15 @@
       ],
       "unit_types": [
         {"handler": "psovod"},
-        {"phalanx_person": "člověk do rojnice"},
-        {"horse_rider": "jezdec"},
-        {"vehicle_driver": "čtyřkolka"},
-        {"drone": "dron"},
+        {"pedestrian": "pěší"},
+        {"terrain_vehicle": "terénní vozidlo"},
+        {"road_vehicle": "silniční vozidlo"},
+        {"horse_rider": "jezdec na koni"},
+        {"dron": "dron"},
+        {"helicopter": "vrtulník"},
+        {"boat": "člun"},
         {"diver": "potápěč"},
         {"other": "ostatní"}
-      ],
-      "unit_types_lines": [
-        {"handler": "psovod"},
-        {"pedestrian": "chodec"},
-        {"horse_rider": "jezdec na koni"},
-        {"quad_bike": "čtyřkolka"},
-        {"car": "auto"},
-        {"motorcycle": "motorka"}
       ],
       "person_types": [
         {"child_1_3": "dítě 1-3"},

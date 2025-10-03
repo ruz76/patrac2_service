@@ -298,24 +298,36 @@ def calculate_report():
                 u.write(str(content['handlers']) + ";\n")
             else:
                 u.write("6;\n")
-            if 'phalanx_persons' in content:
-                u.write(str(content['phalanx_persons']) + ";\n")
+            if 'pedestrians' in content:
+                u.write(str(content['pedestrians']) + ";\n")
             else:
                 u.write("20;\n")
+            if 'terrain_vehicles' in content:
+                u.write(str(content['terrain_vehicles']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'road_vehicles' in content:
+                u.write(str(content['road_vehicles']) + ";\n")
+            else:
+                u.write("0;\n")
             if 'horse_riders' in content:
                 u.write(str(content['horse_riders']) + ";\n")
             else:
                 u.write("0;\n")
-            if 'vehicle_drivers' in content:
-                u.write(str(content['vehicle_drivers']) + ";\n")
-            else:
-                u.write("0;\n")
             if 'drones' in content:
                 u.write(str(content['drones']) + ";\n")
             else:
                 u.write("0;\n")
-            if 'drones' in content:
-                u.write(str(content['drones']) + ";\n")
+            if 'helicopters' in content:
+                u.write(str(content['helicopters']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'boats' in content:
+                u.write(str(content['boats']) + ";\n")
+            else:
+                u.write("0;\n")
+            if 'divers' in content:
+                u.write(str(content['divers']) + ";\n")
             else:
                 u.write("0;\n")
             if 'other_resources' in content:

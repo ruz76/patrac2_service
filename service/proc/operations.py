@@ -815,6 +815,183 @@ def getReportItems(feature):
     stats = str(selected_type) + '||' + str(feature["properties"]['area_ha'] * 10000) + '|100%'
     return [stats]
 
+def get_units_report(ID, surfaces):
+    # Reads numbers for existing search units from units.txt
+    units_counts = []
+
+    fileInput = open(os.path.join(settingsPath, 'grass', 'units.txt'), mode="r")
+
+    for row in csv.reader(fileInput, delimiter=';'):
+        # unicode_row = [x.decode('utf8') for x in row]
+        unicode_row = row
+        cur_count = int(unicode_row[0])
+        units_counts.append(cur_count)
+
+    fileInput.close()
+
+    surfaces_int = [int(math.ceil(v)) for v in surfaces]
+
+    unitsTimesPath = os.path.join(settingsPath, 'grass', 'units_times.csv')
+    fileInput = open(unitsTimesPath, mode="r")
+
+    # Reads CSV and populates the array
+    unitsTimes = []
+    for row in csv.reader(fileInput, delimiter=';'):
+        row_out = []
+        for field in row:
+            row_out.append(float(field))
+        unitsTimes.append(row_out)
+
+    units_areas = []
+    if units_counts[5] > 0:
+        # We have a drone
+        units_areas.append(int(math.ceil(surfaces[2] + surfaces[3] + surfaces[4] + surfaces[7]))) # handlers
+        units_areas.append(int(math.ceil(surfaces[5] + surfaces[6] + surfaces[9]))) # phalanx
+        units_areas.append(0) # No terrain_vehicles yet
+        units_areas.append(0) # No road_vehicles yet
+        units_areas.append(0) # No horses yet
+        units_areas.append(int(math.ceil(surfaces[0] + surfaces[1]))) # Drones
+        units_areas.append(0) # No Helicopters yet
+        units_areas.append(0) # No boats
+        units_areas.append(int(math.ceil(surfaces[8]))) # Divers
+        units_areas.append(0) # No other
+    else:
+        # We do not have a drone
+        units_areas.append(int(math.ceil(surfaces[0] + surfaces[1] + surfaces[2] + surfaces[3] + surfaces[4] + surfaces[7]))) # handlers
+        units_areas.append(int(math.ceil(surfaces[5] + surfaces[6] + surfaces[9]))) # phalanx
+        units_areas.append(0) # No terrain_vehicles yet
+        units_areas.append(0) # No road_vehicles yet
+        units_areas.append(0) # No horses yet
+        units_areas.append(0) # Drones
+        units_areas.append(0) # No Helicopters yet
+        units_areas.append(0) # No boats
+        units_areas.append(int(math.ceil(surfaces[8]))) # Divers
+        units_areas.append(0) # No other
+
+    units_times = []
+    # handlers
+    if units_counts[0] > 0:
+        if units_counts[5] > 0:
+            # We have a drone
+            P3_P5_KPT = float(surfaces[2]) / fixUt(unitsTimes[2][0]) + float(surfaces[4]) / fixUt(unitsTimes[4][0])
+            P4_P8_KPT = float(surfaces[3]) / fixUt(unitsTimes[3][0]) + float(surfaces[7]) / fixUt(unitsTimes[7][0])
+            units_times.append(int(math.ceil((P3_P5_KPT + P4_P8_KPT) / float(units_counts[0]))))
+        else:
+            # We do not have a drone
+            P2_P3_P5_KPT = float(surfaces[1]) / fixUt(unitsTimes[1][0]) + float(surfaces[2]) / fixUt(unitsTimes[2][0]) + float(surfaces[4]) / fixUt(unitsTimes[4][0])
+            P1_P4_P8_KPT = float(surfaces[0]) / fixUt(unitsTimes[0][0]) + float(surfaces[3]) / fixUt(unitsTimes[3][0]) + float(surfaces[7]) / fixUt(unitsTimes[7][0])
+            units_times.append(int(math.ceil((P2_P3_P5_KPT + P1_P4_P8_KPT) / float(units_counts[0]))))
+    else:
+        units_times.append(-99)
+
+    # pedestrians
+    if units_counts[1] > 0:
+        P6_P7_P10_PT = float(surfaces[5]) / fixUt(unitsTimes[5][1]) + float(surfaces[6]) / fixUt(unitsTimes[6][1]) + float(surfaces[9]) / fixUt(unitsTimes[9][1])
+        units_times.append(int(math.ceil(P6_P7_P10_PT / float(units_counts[1]))))
+    else:
+        units_times.append(-99)
+
+    units_times.append(-99) # No terrain_vehicles yet
+    units_times.append(-99) # No road_vehicles yet
+    units_times.append(-99) # No horse_riders
+
+    # Drone
+    if units_counts[5] > 0:
+        P1_P2_APT = float(surfaces[0]) / fixUt(unitsTimes[0][5]) + float(surfaces[1]) / fixUt(unitsTimes[1][5])
+        units_times.append(int(math.ceil(P1_P2_APT / float(units_counts[5]))))
+    else:
+        units_times.append(-99)
+
+    units_times.append(-99) # No helicopters
+    units_times.append(-99) # No boats
+
+    # Diver
+    if units_counts[8] > 0:
+        P9_VPT = float(surfaces[8]) / fixUt(unitsTimes[8][8])
+        units_times.append(int(math.ceil(P9_VPT / float(units_counts[8]))))
+    else:
+        units_times.append(-99)
+
+    units_times.append(-99) # No other yet
+
+    # Second variant
+    # drone for P1, P2 if is available else phalanx for P1, P2
+    # phalanx for P3, P4, P5, P6, P7, P8, P10
+    # diver for P9
+
+    units_areas_alternatives = []
+    if units_counts[5] > 0:
+        # We have a drone
+        units_areas_alternatives.append(0) # handlers
+        units_areas_alternatives.append(int(math.ceil(surfaces[2] + surfaces[3] + surfaces[4] + surfaces[5] + surfaces[6] + surfaces[7] + surfaces[9]))) # phalanx
+        units_areas_alternatives.append(0) # No terrain_vehicles
+        units_areas_alternatives.append(0) # No road_vehicles
+        units_areas_alternatives.append(0) # No horse_riders
+        units_areas_alternatives.append(int(math.ceil(surfaces[0] + surfaces[1]))) # Drones
+        units_areas_alternatives.append(0) # No helicopters
+        units_areas_alternatives.append(0) # No boats
+        units_areas_alternatives.append(int(math.ceil(surfaces[8]))) # Divers
+        units_areas_alternatives.append(0) # No other
+    else:
+        # We do not have a drone
+        units_areas_alternatives.append(0) # handlers
+        units_areas_alternatives.append(int(math.ceil(surfaces[0] + surfaces[1] + surfaces[2] + surfaces[3] + surfaces[4] + surfaces[5] + surfaces[6] + surfaces[7] + surfaces[9]))) # phalanx
+        units_areas_alternatives.append(0) # No terrain_vehicles
+        units_areas_alternatives.append(0) # No road_vehicles
+        units_areas_alternatives.append(0) # No horse_riders
+        units_areas_alternatives.append(0) # Drones
+        units_areas_alternatives.append(0) # No helicopters
+        units_areas_alternatives.append(0) # No boats
+        units_areas_alternatives.append(int(math.ceil(surfaces[8]))) # Divers
+        units_areas_alternatives.append(0) # No other
+
+    maxtime = 3
+    if os.path.isfile(os.path.join(settingsPath, 'grass', 'maxtime.txt')):
+        try:
+            maxtime = int(open(os.path.join(settingsPath, 'grass', 'maxtime.txt'), 'r').read())
+        except ValueError:
+            maxtime = 3
+
+    if maxtime <= 0:
+        maxtime = 3
+
+    units_necessary = []
+
+    P3_P5_KPT = float(surfaces[2]) / fixUt(unitsTimes[2][0]) + float(surfaces[4]) / fixUt(unitsTimes[4][0])
+    P4_P8_KPT = float(surfaces[3]) / fixUt(unitsTimes[3][0]) + float(surfaces[7]) / fixUt(unitsTimes[7][0])
+    units_necessary.append(int(math.ceil((P3_P5_KPT + P4_P8_KPT) / float(maxtime)))) # handlers
+
+    P6_P7_P10_PT = float(surfaces[5]) / fixUt(unitsTimes[5][1]) + float(surfaces[6]) / fixUt(unitsTimes[6][1]) + float(surfaces[9]) / fixUt(unitsTimes[9][1])
+    units_necessary.append(int(math.ceil(P6_P7_P10_PT / float(maxtime)))) # pedestrians
+
+    units_necessary.append(0) # No terrain_vehicles yet
+    units_necessary.append(0) # No road_vehicles yet
+    units_necessary.append(0) # No horse_riders yet
+
+    P1_P2_APT = float(surfaces[0]) / fixUt(unitsTimes[0][5]) + float(surfaces[1]) / fixUt(unitsTimes[1][5])
+    units_necessary.append(int(math.ceil(P1_P2_APT / float(maxtime)))) # drones
+
+    units_necessary.append(0) # No helicopter yet
+    units_necessary.append(0) # No boat yet
+
+    P9_VPT = float(surfaces[8]) / fixUt(unitsTimes[8][8])
+    units_necessary.append(int(math.ceil(P9_VPT / float(maxtime))))
+
+    units_necessary.append(0) # No other yet
+
+    report = {
+        "id": ID,
+        "report": {
+            "surfaces": surfaces_int,
+            "units_areas": units_areas,
+            "units_areas_alternatives": units_areas_alternatives,
+            "units_times": units_times,
+            "units_necessary": units_necessary
+        }
+    }
+
+    return report
+
 def report_export(id):
     ID = id
 
@@ -994,173 +1171,21 @@ def report_export(id):
     SUM_P9 = SUM_P9 / float(10000)
     SUM_P10 = SUM_P10 / float(10000)
 
-    # Reads numbers for existing search units from units.txt
-    units_counts = []
-
-    fileInput = open(os.path.join(settingsPath, 'grass', 'units.txt'), mode="r")
-
-    for row in csv.reader(fileInput, delimiter=';'):
-        # unicode_row = [x.decode('utf8') for x in row]
-        unicode_row = row
-        cur_count = int(unicode_row[0])
-        units_counts.append(cur_count)
-
-    fileInput.close()
-
-    surfaces = [
-        int(math.ceil(SUM_P1)),
-        int(math.ceil(SUM_P2)),
-        int(math.ceil(SUM_P3)),
-        int(math.ceil(SUM_P4)),
-        int(math.ceil(SUM_P5)),
-        int(math.ceil(SUM_P6)),
-        int(math.ceil(SUM_P7)),
-        int(math.ceil(SUM_P8)),
-        int(math.ceil(SUM_P9)),
-        int(math.ceil(SUM_P10))
+    surfaces_float = [
+        SUM_P1,
+        SUM_P2,
+        SUM_P3,
+        SUM_P4,
+        SUM_P5,
+        SUM_P6,
+        SUM_P7,
+        SUM_P8,
+        SUM_P9,
+        SUM_P10
     ]
 
-    unitsTimesPath = os.path.join(settingsPath, 'grass', 'units_times.csv')
-    fileInput = open(unitsTimesPath, mode="r")
+    report = get_units_report(ID, surfaces_float)
 
-    # Reads CSV and populates the array
-    unitsTimes = []
-    for row in csv.reader(fileInput, delimiter=';'):
-        row_out = []
-        for field in row:
-            row_out.append(float(field))
-        unitsTimes.append(row_out)
-
-    # First variant
-    # drone for P1, P2 if is available else handler for P1, P2
-    # handler for P3, P4, P5, P8
-    # phalanx for P6, P7, P10
-    # diver for P9
-
-    # {"handler": "psovod"},
-    # {"phalanx_person": "člověk do rojnice"},
-    # {"horse_rider": "jezdec"},
-    # {"vehicle_driver": "čtyřkolka"},
-    # {"drone": "dron"},
-    # {"diver": "potápěč"},
-    # {"other": "ostatní"}
-
-    units_areas = []
-    if units_counts[4] > 0:
-        # We have a drone
-        units_areas.append(int(math.ceil(SUM_P3 + SUM_P4 + SUM_P5 + SUM_P8))) # handlers
-        units_areas.append(int(math.ceil(SUM_P6 + SUM_P7 + SUM_P10))) # phalanx
-        units_areas.append(0) # No horses yet
-        units_areas.append(0) # No drivers
-        units_areas.append(int(math.ceil(SUM_P1 + SUM_P2))) # Drones
-        units_areas.append(int(math.ceil(SUM_P9))) # Divers
-        units_areas.append(0) # No other
-    else:
-        # We do not have a drone
-        units_areas.append(int(math.ceil(SUM_P1 + SUM_P2 + SUM_P3 + SUM_P4 + SUM_P5 + SUM_P8))) # handlers
-        units_areas.append(int(math.ceil(SUM_P6 + SUM_P7 + SUM_P10))) # phalanx
-        units_areas.append(0) # No horses yet
-        units_areas.append(0) # No drivers yet
-        units_areas.append(0) # Drones
-        units_areas.append(int(math.ceil(SUM_P9))) # Divers
-        units_areas.append(0) # No other yet
-
-    units_times = []
-    if units_counts[0] > 0:
-        if units_counts[4] > 0:
-            # We have a drone
-            P3_P5_KPT = float(SUM_P3) / fixUt(unitsTimes[2][0]) + float(SUM_P5) / fixUt(unitsTimes[4][0])
-            P4_P8_KPT = float(SUM_P4) / fixUt(unitsTimes[3][0]) + float(SUM_P8) / fixUt(unitsTimes[7][0])
-            units_times.append(int(math.ceil((P3_P5_KPT + P4_P8_KPT) / float(units_counts[0]))))
-        else:
-            # We do not have a drone
-            P2_P3_P5_KPT = float(SUM_P2) / fixUt(unitsTimes[1][0]) + float(SUM_P3) / fixUt(unitsTimes[2][0]) + float(SUM_P5) / fixUt(unitsTimes[4][0])
-            P1_P4_P8_KPT = float(SUM_P1) / fixUt(unitsTimes[0][0]) + float(SUM_P4) / fixUt(unitsTimes[3][0]) + float(SUM_P8) / fixUt(unitsTimes[7][0])
-            units_times.append(int(math.ceil((P2_P3_P5_KPT + P1_P4_P8_KPT) / float(units_counts[0]))))
-    else:
-        units_times.append(-99)
-
-    if units_counts[1] > 0:
-        P6_P7_P10_PT = float(SUM_P6) / fixUt(unitsTimes[5][1]) + float(SUM_P7) / fixUt(unitsTimes[6][1]) + float(SUM_P10) / fixUt(unitsTimes[9][1])
-        units_times.append(int(math.ceil(P6_P7_P10_PT / float(units_counts[1]))))
-    else:
-        units_times.append(-99)
-
-    units_times.append(-99) # No horses yet
-    units_times.append(-99) # No drivers yet
-    if units_counts[4] > 0:
-        P1_P2_APT = float(SUM_P1) / fixUt(unitsTimes[0][4]) + float(SUM_P2) / fixUt(unitsTimes[1][4])
-        units_times.append(int(math.ceil(P1_P2_APT / float(units_counts[4]))))
-    else:
-        units_times.append(-99)
-
-    if units_counts[5] > 0:
-        P9_VPT = float(SUM_P9) / fixUt(unitsTimes[8][5])
-        units_times.append(int(math.ceil(P9_VPT / float(units_counts[5]))))
-    else:
-        units_times.append(-99)
-
-    units_times.append(-99) # No other yet
-
-    # Second variant
-    # drone for P1, P2 if is available else phalanx for P1, P2
-    # phalanx for P3, P4, P5, P6, P7, P8, P10
-    # diver for P9
-
-    units_areas_alternatives = []
-    if units_counts[4] > 0:
-        # We have a drone
-        units_areas_alternatives.append(0) # handlers
-        units_areas_alternatives.append(int(math.ceil(SUM_P3 + SUM_P4 + SUM_P5 + SUM_P6 + SUM_P7 + SUM_P8 + SUM_P10))) # phalanx
-        units_areas_alternatives.append(0) # No horses yet
-        units_areas_alternatives.append(0) # No drivers
-        units_areas_alternatives.append(int(math.ceil(SUM_P1 + SUM_P2))) # Drones
-        units_areas_alternatives.append(int(math.ceil(SUM_P9))) # Divers
-        units_areas_alternatives.append(0) # No other
-    else:
-        # We do not have a drone
-        units_areas_alternatives.append(0) # handlers
-        units_areas_alternatives.append(int(math.ceil(SUM_P1 + SUM_P2 + SUM_P3 + SUM_P4 + SUM_P5 + SUM_P6 + SUM_P7 + SUM_P8 + SUM_P10))) # phalanx
-        units_areas_alternatives.append(0) # No horses yet
-        units_areas_alternatives.append(0) # No drivers yet
-        units_areas_alternatives.append(0) # Drones
-        units_areas_alternatives.append(int(math.ceil(SUM_P9))) # Divers
-        units_areas_alternatives.append(0) # No other yet
-
-    maxtime = 3
-    if os.path.isfile(os.path.join(settingsPath, 'grass', 'maxtime.txt')):
-        try:
-            maxtime = int(open(os.path.join(settingsPath, 'grass', 'maxtime.txt'), 'r').read())
-        except ValueError:
-            maxtime = 3
-
-    if maxtime <= 0:
-        maxtime = 3
-
-    units_necessary = []
-    P3_P5_KPT = float(SUM_P3) / fixUt(unitsTimes[2][0]) + float(SUM_P5) / fixUt(unitsTimes[4][0])
-    P4_P8_KPT = float(SUM_P4) / fixUt(unitsTimes[3][0]) + float(SUM_P8) / fixUt(unitsTimes[7][0])
-    units_necessary.append(int(math.ceil((P3_P5_KPT + P4_P8_KPT) / float(maxtime))))
-    P6_P7_P10_PT = float(SUM_P6) / fixUt(unitsTimes[5][1]) + float(SUM_P7) / fixUt(unitsTimes[6][1]) + float(SUM_P10) / fixUt(unitsTimes[9][1])
-    units_necessary.append(int(math.ceil(P6_P7_P10_PT / float(maxtime))))
-    units_necessary.append(0) # No horses yet
-    units_necessary.append(0) # No drivers yet
-    P1_P2_APT = float(SUM_P1) / fixUt(unitsTimes[0][4]) + float(SUM_P2) / fixUt(unitsTimes[1][4])
-    units_necessary.append(int(math.ceil(P1_P2_APT / float(maxtime))))
-    P9_VPT = float(SUM_P9) / fixUt(unitsTimes[8][5])
-    units_necessary.append(int(math.ceil(P9_VPT / float(maxtime))))
-    units_necessary.append(0) # No other yet
-
-    report = {
-        "id": ID,
-        "report": {
-            "surfaces": surfaces,
-            "units_areas": units_areas,
-            "units_areas_alternatives": units_areas_alternatives,
-            "units_times": units_times,
-            "units_necessary": units_necessary
-        }
-    }
     with open(os.path.join(dataPath, ID + "_report.json"), "w") as r:
         json.dump(report, r)
 

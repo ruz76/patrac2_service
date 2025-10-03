@@ -257,26 +257,44 @@ paths:
                   minimum: 0
                   default: 6
                   example: 6
-                phalanx_persons:
-                  description: Počet osob do rojnice.
+                pedestrians:
+                  description: Počet pěších osob např. do rojnice.
                   type: integer
                   minimum: 1
                   default: 20
                   example: 20
+                terrain_vehicles:
+                  description: Počet terénních vozidel.
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 5
+                road_vehicles:
+                  description: Počet silničních vozidel.
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 5
                 horse_riders:
                   description: Počet osob na koních.
                   type: integer
                   minimum: 0
                   default: 0
                   example: 5
-                vehicle_drivers:
-                  description: Počet osob na čtyřkolkách a jiných motorových prostředcích.
+                drones:
+                  description: Počet dronů.
                   type: integer
                   minimum: 0
                   default: 0
-                  example: 5
-                drones:
-                  description: Počet dronů nebo jiných leteckých prostředků.
+                  example: 1
+                helicopters:
+                  description: Počet vrtulníků.
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  example: 1
+                boats:
+                  description: Počet člunů.
                   type: integer
                   minimum: 0
                   default: 0
@@ -299,12 +317,15 @@ paths:
               calculated_sectors_id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
               max_time: 6
               handlers: 10
-              phalanx_persons: 100
+              pedestrians: 100
+              terrain_vehicles: 5
+              road_vehicles: 5
               horse_riders: 2
-              vehicle_drivers: 5
-              divers: 1
               drones: 1
-              other_resources: 0
+              helicopters: 1
+              boats: 1
+              divers: 1
+              other_resources: 1
       responses:
         "200":
           description: "OK"
@@ -325,10 +346,10 @@ paths:
                   id: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
                   report:
                     surfaces: [11, 1, 0, 588, 1, 156, 35, 0, 2, 0]
-                    units_areas: [588, 190, 0, 0, 11, 2, 0]
-                    units_areas_alternatives: [0, 789, 0, 0, 0, 2, 0]
-                    units_times: [28, 55, 0, 0, 1, 3, 0]
-                    units_necessary: [29, 1086, 0, 0, 1, 1, 0]
+                    units_areas: [588, 190, 0, 0, 11, 2, 0, 0, 0, 0]
+                    units_areas_alternatives: [0, 789, 0, 0, 0, 2, 0, 0, 0, 0]
+                    units_times: [28, 55, 0, 0, 1, 3, 0, 0, 0, 0]
+                    units_necessary: [29, 1086, 0, 0, 1, 1, 0, 0, 0, 0]
         "400":
           description: | 
             Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
@@ -480,7 +501,7 @@ paths:
                     Vysvětlení výčtu je v souboru enums.json.
                     V případě volby undefined se cílové místo nemodifikuje a k daným alternativám je uveden nejvhodnější prostředek.
                   type: string
-                  enum: [ "undefined", "handler", "pedestrian", "horse_rider", "quad_bike", "car", "motorcycle" ]
+                  enum: [ "undefined", "handler", "pedestrian", "terrain_vehicle", "road_vehicle", "horse_rider", "dron", "helicopter", "boat", "diver" ]
                   default: "undefined"
                   example: "handler"
                 coordinates:

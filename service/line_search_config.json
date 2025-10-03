@@ -2,35 +2,47 @@
   "shortest_path": {
     "handler": 4000,
     "pedestrian": 4000,
+    "terrain_vehicle": 10000,
+    "road_vehicle": 10000,
     "horse_rider": 7000,
-    "quad_bike": 10000,
-    "car": 10000,
-    "motorcycle": 10000,
+    "dron": 10000,
+    "helicopter": 10000,
+    "boat": 10000,
+    "diver": 1000,
     "undefined": 10000
   },
   "covers": {
     "handler": 15000,
     "pedestrian": 12000,
+    "terrain_vehicle": 25000,
+    "road_vehicle": 25000,
     "horse_rider": 18000,
-    "quad_bike": 25000,
-    "car": 25000,
-    "motorcycle": 25000
+    "dron": 25000,
+    "helicopter": 25000,
+    "boat": 25000,
+    "diver": 3000
   },
   "covers_fuzzy": {
     "handler": [0.5, 1.25],
     "pedestrian": [0.5, 1.25],
+    "terrain_vehicle": [0.5, 1.25],
+    "road_vehicle": [0.5, 1.25],
     "horse_rider": [0.5, 1.25],
-    "quad_bike": [0.5, 1.25],
-    "car": [0.5, 1.25],
-    "motorcycle": [0.5, 1.25]
+    "dron": [0.5, 1.25],
+    "helicopter": [0.5, 1.25],
+    "boat": [0.5, 1.25],
+    "diver": [0.5, 1.25]
   },
   "allowed_grades": {
     "handler": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     "pedestrian": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "terrain_vehicle": [0, 1, 2, 3, 4],
+    "road_vehicle": [0, 1, 2],
     "horse_rider": [0, 1, 2, 3, 4],
-    "quad_bike": [0, 1, 2, 3, 4],
-    "car": [0, 1, 2],
-    "motorcycle": [0, 1, 2, 3, 4, 5],
+    "dron": [0, 1, 2],
+    "helicopter": [0, 1, 2],
+    "boat": [11],
+    "diver": [11],
     "undefined": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   }
 }
