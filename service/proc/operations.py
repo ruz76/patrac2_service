@@ -639,7 +639,7 @@ def cost_distance(data_path, id, person_type_id):
     #Reads distances from distances selected (or defined) by user
     distances_f=open(os.path.join(PLUGIN_PATH, 'grass', 'distances.txt'))
     lines=distances_f.readlines()
-    DISTANCES=lines[TYPE-1]
+    DISTANCES=lines[TYPE]
 
     #Distances methodology
     print(gscript.read_command('r.buffer', input='coords', output='distances' + PLACE_ID, distances=DISTANCES , overwrite=True))
@@ -744,7 +744,7 @@ def cost_distance_on_rings(data_path, id, person_type_id):
     #Reads distances from distances selected (or defined) by user
     distances_f=open(os.path.join(PLUGIN_PATH, 'grass', 'distances.txt'))
     lines=distances_f.readlines()
-    DISTANCES=lines[TYPE-1]
+    DISTANCES=lines[TYPE]
 
     #Distances methodology
     print(gscript.read_command('r.buffer', input='coords', output='distances' + PLACE_ID, distances=DISTANCES , overwrite=True))
