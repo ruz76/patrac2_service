@@ -25,8 +25,11 @@
           "total_path": 26119,
           "duplicate_length": 7888,
           "suggested_unit_types": [
-            "quad_bike"
+            "terrain_vehicle"
           ],
+          "expected_time_search": {
+            "terrain_vehicle": [6417, 15364]
+          },
           "coordinates": [
             [
               15.0339242,
@@ -1498,8 +1501,11 @@
           "total_path": 19924,
           "duplicate_length": 5449,
           "suggested_unit_types": [
-            "quad_bike"
+            "terrain_vehicle"
           ],
+          "expected_time_search": {
+            "terrain_vehicle": [4895, 11720]
+          },
           "coordinates": [
             [
               15.0339242,

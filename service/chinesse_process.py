@@ -484,6 +484,7 @@ def solve_graph(graph, config, name):
         print(segments_grades)
 
         suggested_unit_types = []
+        expected_time_search = {}
         print(path_length)
         for item in config["covers"]:
             min = config["covers"][item] * config["covers_fuzzy"][item][0]
@@ -492,6 +493,7 @@ def solve_graph(graph, config, name):
             grades_diff = set(segments_grades) - set(config["allowed_grades"][item])
             if min <= (path_length * 1000) <= max and not grades_diff:
                 suggested_unit_types.append(item)
+                expected_time_search[item] = [round((path_length * 1000) / config["speed"][item][0]), round((path_length * 1000) / config["speed"][item][1])]
 
         # We add the path only in the case that at least one search unit type is suggested
         # if len(suggested_unit_types) > 0:
@@ -502,6 +504,7 @@ def solve_graph(graph, config, name):
             "total_path": round(path_length * 1000),
             "duplicate_length": round(duplicate_length * 1000),
             "suggested_unit_types": suggested_unit_types,
+            "expected_time_search": expected_time_search,
             "coordinates": points
         }
 
