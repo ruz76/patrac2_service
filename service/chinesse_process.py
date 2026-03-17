@@ -337,19 +337,105 @@ def are_on_the_same_position(coord1, coord2, tolerance):
     else:
         return False
 
-def get_points_on_path(gpkg_path, table_name):
+def distance_m(lat1, lon1, lat2, lon2):
+    R = 6371000  # poloměr Země v metrech
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+def get_gpx_route_header(title):
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+    <gpx version="1.1" creator="Example"
+     xmlns="http://www.topografix.com/GPX/1/1">
+
+    <rte>
+    <name>{title}</name>
+    """
+
+def get_gpx_route_footer():
+    return """
+    </rte>
+    </gpx>
+    """
+
+def write_gpx_point(file_out, lon, lat, title):
+    file_out.write(
+        f"""
+        <rtept lat="{lat}" lon="{lon}">
+         <name>{title}</name>
+        </rtept>
+        """
+    )
+
+def write_coords(file_path, title, coords_to_export, output_coords_sequence):
+
+    min_distance_m=1
+    with open(file_path, "w") as gpxout:
+        gpxout.write(get_gpx_route_header(title))
+
+        current_coord_pos = 1
+        prev_coord = None
+
+        for coord in coords_to_export:
+
+            precision = 6
+            lat = round(coord[0], precision)
+            lon = round(coord[1], precision)
+
+            wtite_current_point_to_gpx = True
+            if prev_coord is not None:
+                dist = distance_m(prev_coord[0], prev_coord[1], lat, lon)
+                if dist < min_distance_m:
+                    print(f"Skipping point {lat},{lon} distance {dist:.3f} m")
+                    wtite_current_point_to_gpx = False
+
+            if wtite_current_point_to_gpx:
+                coord_title = "Bod " + str(current_coord_pos)
+
+                if current_coord_pos == 1:
+                    coord_title = "Start"
+                if current_coord_pos == len(coords_to_export):
+                    coord_title = "Cíl"
+
+                write_gpx_point(gpxout, lat, lon, coord_title)
+                prev_coord = coord
+
+            output_coords_sequence.append([lat, lon])
+
+            current_coord_pos += 1
+
+        gpxout.write(get_gpx_route_footer())
+
+def get_points_on_path(gpkg_path, table_name, config, name):
     print('Before fiona open')
     # print(fiona.__version__)
     output_coords_sequence = []
     segment_grades = []
+    segments_ids = []
+    breaks_ids = []
     pos = 0
     coords_0 = None
     tolerance = 0.00001  # ~1 metr
     try:
         with fiona.open(gpkg_path, layer=table_name) as layer:
-            for feature in layer:
+            features = [f for f in layer]
+            features_sorted = sorted(features, key=lambda f: int(f['properties']['ord']))
+            # for f in features_sorted[:10]:  # první 10 prvků
+            #     print(f['properties']['ord'], f['properties']['source_path'], f['properties']['target_path'])
+
+        print('**** Writing into: ' + config['output_dir'] + '/' + name + "_features.log ******")
+        with open(config['output_dir'] + '/' + name + "_features.log", "w") as lout:
+            segment_pos = 0
+            for feature in features_sorted:
+                segment_pos += 1
                 geometry = shape(feature["geometry"])
                 segment_grades.append(feature["properties"]["grade"])
+                segments_ids.append(feature["properties"]["gid"])
+                lout.write(f'{feature["properties"]["source_path"]} {feature["properties"]["target_path"]}\n')
                 # print(feature['properties']['ord'])
                 coords = geometry.coords
                 coords_fixed = coords
@@ -380,12 +466,16 @@ def get_points_on_path(gpkg_path, table_name):
                         coords_0_fixed = coords_0
                         # Flip the line2
                         coords_1_fixed = coords_fixed[::-1]
-                    for coord in coords_0_fixed:
-                        # print(coord)
-                        output_coords_sequence.append([coord[0], coord[1]])
-                    for coord in coords_1_fixed:
-                        # print(coord)
-                        output_coords_sequence.append([coord[0], coord[1]])
+
+                    file_title = name + "_segment_001"
+                    breaks_ids.append(0)
+                    write_coords(config['output_dir'] + '/' + file_title + ".gpx", file_title, coords_0_fixed, output_coords_sequence)
+
+                    file_title = name + "_segment_002"
+                    breaks_ids.append(len(output_coords_sequence))
+                    write_coords(config['output_dir'] + '/' + file_title + ".gpx", file_title, coords_1_fixed, output_coords_sequence)
+
+
                 if pos > 1:
                     # if feature['properties']['source_path'] != feature['properties']['target_path']:
                     #     coords_fixed = coords[::-1]
@@ -393,21 +483,31 @@ def get_points_on_path(gpkg_path, table_name):
                         # The line N+1 does not have the first point on the last point of the line N
                         # Flip the line N+1
                         coords_fixed = coords[::-1]
-                    for coord in coords_fixed:
-                        # print(coord)
-                        output_coords_sequence.append([coord[0], coord[1]])
+
+                    file_title = name + "_segment_" + str(segment_pos)
+                    if segment_pos < 100:
+                        file_title = name + "_segment_0" + str(segment_pos)
+                    if segment_pos < 10:
+                        file_title = name + "_segment_00" + str(segment_pos)
+                    breaks_ids.append(len(output_coords_sequence))
+                    write_coords(config['output_dir'] + '/' + file_title + ".gpx", file_title, coords_fixed, output_coords_sequence)
+
                 pos += 1
     except Exception as e:
         print('Unexpected error' + str(e))
 
-    return output_coords_sequence, segment_grades
+    return output_coords_sequence, segment_grades, segments_ids, breaks_ids
 
 
 def prepare_data_for_graph_based_on_polygon(config, grades):
 
     run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
 
-    sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005)) and ways.grade in (" + grades + ")"
+    if len(config["segments_exclude"]) == 0:
+        sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005)) and ways.grade in (" + grades + ")"
+    else:
+        segments_exclude = ', '.join(str(n) for n in config["segments_exclude"])
+        sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways, new_polygon_layer where st_intersects(ways.the_geom, st_buffer(new_polygon_layer.geom, -0.00005)) and ways.grade in (" + grades + ") and gid not in (" + segments_exclude + ")"
     print(sql)
     run_query(config['gpkg_path'], sql)
     output_data = get_table_data(config['gpkg_path'], 'ways_for_sectors_export', ['source', 'target', 'length_m', 'gid', 'x1', 'y1', 'x2', 'y2'])
@@ -418,7 +518,11 @@ def prepare_data_for_graph(config, grades):
 
     run_query(config['gpkg_path'], 'delete from ways_for_sectors_export')
 
-    sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways where grade in (" + grades + ")"
+    if len(config["segments_exclude"]) == 0:
+        sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways where grade in (" + grades + ")"
+    else:
+        segments_exclude = ', '.join(str(n) for n in config["segments_exclude"])
+        sql = "insert into ways_for_sectors_export (source, target, length_m, gid, x1, y1, x2, y2) select distinct source, target, length_m, ways.gid gid, x1, y1, x2, y2 from ways where grade in (" + grades + ") and gid not in (" + segments_exclude + ")"
     print(sql)
 
     run_query(config['gpkg_path'], sql)
@@ -478,7 +582,7 @@ def solve_graph(graph, config, name):
         create_layer(config, eulerian_graph, nodes, name + '_' + str(component_id))
         with open(os.path.join(config['output_dir'], name + '_' + str(component_id) + '_nodes_sequence.json'), 'w') as f:
             json.dump(nodes, f)
-        points, segments_grades = get_points_on_path(config['gpkg_path'], 'chpostman_path_export')
+        points, segments_grades, segments_ids, breaks_ids = get_points_on_path(config['gpkg_path'], 'chpostman_path_export', config, name + '_' + str(component_id))
 
         print("SEGMENTS GRADES")
         print(segments_grades)
@@ -505,7 +609,9 @@ def solve_graph(graph, config, name):
             "duplicate_length": round(duplicate_length * 1000),
             "suggested_unit_types": suggested_unit_types,
             "expected_time_search": expected_time_search,
-            "coordinates": points
+            "coordinates": points,
+            "segments_ids": segments_ids,
+            "breaks_ids": breaks_ids
         }
 
         outputs.append(output)
@@ -550,6 +656,12 @@ def create_layer(config, graph, nodes, name):
             queries.append(query)
 
     run_queries(config['gpkg_path'], queries)
+
+    print('**** Writing into: ' + config['output_dir'] + '/' + name + "_queries.sql ******")
+    with open(config['output_dir'] + '/' + name + "_queries.sql", "w") as qout:
+        for query in queries:
+            qout.write(query + "\n")
+
     run_query(config['gpkg_path'], 'delete from chpostman_path_export')
     # run_query(config['gpkg_path'], "SELECT 'ALTER TABLE chpostman_path_export ADD COLUMN grade TEXT;' WHERE NOT EXISTS ( SELECT 1 FROM pragma_table_info('chpostman_path_export') WHERE name = 'grade')")
     run_query(config['gpkg_path'], "insert into chpostman_path_export (gid, ord, ts, source_path, target_path, source_way, target_way, the_geom, grade) select ch.gid, ch.ord, ch.ts, ch.source, ch.target, w.source, w.target, w.the_geom, w.grade from chpostman_path ch join ways w on (ch.gid = w.gid) order by ch.ts")

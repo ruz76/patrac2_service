@@ -482,6 +482,8 @@ paths:
       description: |
         Spustí výpočet získání cesty pro liniové pátrání.
         Vrátí seznam souřadnic, po kterých se má prostředek pohybovat.
+        Dále vrací k seznamu souřadnic identifikátory segmentů, které souřadnice pokrývají.
+        Dále vrací seznam indexů souřadnic začátků úseků.
         Seznam souřadnic bude vždy v systému EPSG:4326
       operationId: calculate_path_search
       requestBody:
@@ -535,6 +537,13 @@ paths:
                     Pokud je uveden a výpočet s daným id neexistuje, pak je vytvořen nový výpočet s uvedeným id.
                   type: string
                   default: "23ea04a3-19d2-44b3-bb75-ebed4dcb0aaa"
+                segments_exclude:
+                  description: |
+                    Pole (list) identifikátorů segmentů, které se mají z výpočtu odstranit.
+                  type: array
+                  items:
+                    type: number
+                  example: [10018616, 10018618, 10033494]
               required:
                 - search_id
                 - unit_type
