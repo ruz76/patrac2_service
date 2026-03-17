@@ -16,4 +16,9 @@ patracDataPath = r"C:\Users\gis\temp\testing environment\patrac_service\data"
 # dataPath = "/media/jencek/Elements/patrac/patracdata_patrac2/service/data"
 # patracDataPath = "/media/jencek/Elements/patrac/patracdata_patrac2"
 
+grass7bin_lin = 'grass'
+logsPath = "/data/patracdata/service/logs"
+dataPath = "/data/patracdata/service/data"
+patracDataPath = "/data/patracdata"
+
 

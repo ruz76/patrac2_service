@@ -436,6 +436,9 @@ def calculate_path_search():
             config["sectors"] = []
             config["start_point"] = coords[0]
             config["end_point"] = coords[1]
+            config["segments_exclude"] = []
+            if 'segments_exclude' in content:
+                config["segments_exclude"] = content["segments_exclude"]
 
             if not os.path.exists(config['output_dir']):
                 os.makedirs(config['output_dir'])

@@ -1,9 +1,23 @@
-FROM python:3
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+        grass \
+        grass-dev \
+        gdal-bin \
+        python3-gdal \
+        python3-numpy \
+        python3-pip \
+        wget \
+        ca-certificates
 
 COPY requirements.txt ./
 
-RUN apt-get update && apt-get -y install gdal-bin grass
 RUN pip install --no-cache-dir -r requirements.txt
+
+RUN rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --gid 1000 patrac
 RUN adduser --home /home/patrac --uid 1000 --gid 1000 patrac

@@ -6,6 +6,8 @@ dataPath = r"patracdata"
 # Linux
 # dataPath = "/media/jencek/Elements/patrac/patracdata_patrac2"
 
+dataPath = "/data/patracdata"
+
 serviceStoragePath = os.path.join(dataPath, "service")
 serviceDataPath = os.path.join(dataPath, "service/data")
 pluginPath = os.path.join("qgis", "qgis_patrac")
