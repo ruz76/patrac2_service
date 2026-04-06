@@ -724,43 +724,42 @@ paths:
         "200":
           description: "OK"
           content:
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    coordinates:
-                      type: array
-                      description: Seznam souřadnic míst spatření v pořadí longitute, lattitude.
-                      items:
-                        type: array
-                        items:
-                          type: number
-                          format: double
-                        minItems: 2
-                        maxItems: 2
-                    requested_ring:
-                      type: integer
-                      description: Vzdálenost pro zvolený typ osoby a procenta
-                    all_rings:
-                      type: object
-                      description: Všechny vzdálenosti pro zvolený typ osoby
-                      additionalProperties:
-                        type: integer
-                example:
+            application/json:
+              schema:
+                type: object
+                properties:
                   coordinates:
-                    - [[ 12.56067, 50.05514 ], [ 12.51067, 50.05614 ]]
-                  requested_ring: 1180
+                    type: array
+                    description: Seznam souřadnic míst spatření v pořadí longitute, lattitude.
+                    items:
+                      type: array
+                      items:
+                        type: number
+                        format: double
+                      minItems: 2
+                      maxItems: 2
+                  requested_ring:
+                    type: integer
+                    description: Vzdálenost pro zvolený typ osoby a procenta
                   all_rings:
-                    "10": 140
-                    "20": 330
-                    "30": 560
-                    "40": 870
-                    "50": 1180
-                    "60": 1760
-                    "70": 2430
-                    "80": 3220
-                    "95": 18140
+                    type: object
+                    description: Všechny vzdálenosti pro zvolený typ osoby
+                    additionalProperties:
+                      type: integer
+              example:
+                coordinates:
+                  - [[ 12.56067, 50.05514 ], [ 12.51067, 50.05614 ]]
+                requested_ring: 1180
+                all_rings:
+                  "10": 140
+                  "20": 330
+                  "30": 560
+                  "40": 870
+                  "50": 1180
+                  "60": 1760
+                  "70": 2430
+                  "80": 3220
+                  "95": 18140
         "400":
           description: |
             Chyba 400 nastane v případě, že jsou vstupní parametry chybné.
