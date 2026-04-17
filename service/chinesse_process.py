@@ -822,11 +822,14 @@ def connect_unclosed_lines(lines, tolerance):
 def get_ring_polygon(config):
     with fiona.open(config['gpkg_path'], layer='chpostman_path_export') as layer:
         lines = []
+        added_gids = []
         for feature in layer:
-            # print(feature)
-            line = shape(feature['geometry'])
-            # print(line)
-            lines.append(line)
+            if feature['properties']['gid'] not in added_gids:
+                # print(feature)
+                line = shape(feature['geometry'])
+                # print(line)
+                lines.append(line)
+                added_gids.append(feature['properties']['gid'])
 
         # Krok 1: Snapping
         tolerance = 0.00001  # ~1 metr
@@ -837,11 +840,15 @@ def get_ring_polygon(config):
 
         # Krok 3: Polygonizace
         merged_lines = linemerge(MultiLineString(fixed_lines))
+        merged_lines = merged_lines.simplify(1e-9, preserve_topology=True)
+        # print(merged_lines)
+
         polygons = list(polygonize(merged_lines))
 
-        print('POLYGONS CONUT: ' + str(len(polygons)))
+        print('POLYGONS COUNT: ' + str(len(polygons)))
+
         # for polygon in polygons:
-        #     print('POLYGON: ')
+        #     print('POLYGON:')
         #     print(polygon)
 
     # Soubor GeoPackage, do kterého chceme uložit polygony

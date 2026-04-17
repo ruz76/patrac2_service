@@ -30,5 +30,7 @@ Spouští se v módu pro vývoj, tedy by měl být po spuštění vidět zápis 
 
 ```bash
 docker run -v /data/patracdata:/data/patracdata -p 5000:5000 -it ruz76-patrac2-service
+docker run -v /media/jencek/Elements/patrac/patracdata_patrac2:/data/patracdata -p 5000:5000 -it ruz76-patrac2-service
+docker run -v /data/patracdata/patrac2:/data/patracdata -p 5000:5000 -it ruz76-patrac2-service
 ```
 
