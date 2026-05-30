@@ -16,13 +16,20 @@ from PyQt5.QtCore import QVariant
 url = "http://localhost:5000/calculate_path_search"
 
 payload = {
-  "search_id": "11ea92c8-a6e0-4e40-9c6b-a75a368a33e0",
+  "search_id": "b1c330fb-c375-4ab6-816b-26ed8a6905b2",
   "unit_type": "handler",
   "coordinates": [
-    [15.51449,49.28418],
-    [15.516798,49.270967]
+    [15.015159,49.357635],
+    [15.03327,49.34647]
   ]
 }
+
+# Eustach
+[15.015159,49.357635]
+# Jih
+[15.03327,49.34647]
+
+# Pouště
 
 # Výchozí 1 15.51449,49.28418
 # Sever 15.519,49.29938
