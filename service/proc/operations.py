@@ -816,135 +816,109 @@ def getReportItems(feature):
     return [stats]
 
 def get_units_report(ID, surfaces):
+    # Expected output
+
+    # surfaces: [11, 1, 0, 588, 1, 156, 35, 0, 2, 0] - areas in hectares
+    # units_areas: [588, 190, 0, 0, 11, 2, 0, 0, 0, 0] - for each unit um of hectares
+    # units_areas_alternatives: [0, 789, 0, 0, 0, 2, 0, 0, 0, 0] - not used anymore - so maybe the same as units_areas
+    # units_times: [28, 55, 0, 0, 1, 3, 0, 0, 0, 0] - how log it will take
+    # units_necessary: [29, 1086, 0, 0, 1, 1, 0, 0, 0, 0] - how many units we need to cover in specified time - always put horses
+
+    units_areas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    units_areas_alternatives = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    units_times = [-99, -99, -99, -99, -99, -99, -99, -99, -99, -99]
+    units_necessary = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    # Surfaces
+    # 0 volný schůdný bez porostu
+    # 1 volný schůdný s porostem
+    # 2 volný obtížně schůdný
+    # 3 porost lehce průchozí
+    # 4 porost obtížně průchozí
+    # 5 zastavěné území měst a obcí
+    # 6 městské parky a hřiště s pohybem osob
+    # 7 městské parky a hřiště bez osob
+    # 8 vodní plocha
+    # 9 ostatní plochy
+
     # Reads numbers for existing search units from units.txt
     units_counts = []
 
-    fileInput = open(os.path.join(settingsPath, 'grass', 'units.txt'), mode="r")
+    with open(os.path.join(settingsPath, 'grass', 'units.txt'), mode="r") as f:
 
-    for row in csv.reader(fileInput, delimiter=';'):
-        # unicode_row = [x.decode('utf8') for x in row]
-        unicode_row = row
-        cur_count = int(unicode_row[0])
-        units_counts.append(cur_count)
+        for row in csv.reader(f, delimiter=';'):
+            # unicode_row = [x.decode('utf8') for x in row]
+            unicode_row = row
+            cur_count = int(unicode_row[0])
+            units_counts.append(cur_count)
 
-    fileInput.close()
+    # area_search_config.json content
+    # 0 "handler": [10, 7, 4, 7, 4, 0, 0, 5, 0, 0],
+    # 1 "pedestrian": [0.35, 0, 0, 0.35, 0, 0.05, 0.25, 0.25, 0, 0.25],
+    # 2 "terrain_vehicle": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # 3 "road_vehicle": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # 4 "horse_rider": [1.5, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # 5 "dron": [60, 0, 45, 0, 0, 0, 0, 0, 0, 0],
+    # 6 "helicopter": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # 7 "boat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # 8 "diver": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    # 9 "other": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-    surfaces_int = [int(math.ceil(v)) for v in surfaces]
+    print(units_counts)
 
-    unitsTimesPath = os.path.join(settingsPath, 'grass', 'units_times.csv')
-    fileInput = open(unitsTimesPath, mode="r")
+    areas_speed = {}
+    with open(os.path.join(settingsPath, 'grass', 'area_search_config.json'), mode="r", encoding="utf-8") as cc:
+        areas_speed = json.load(cc)
 
-    # Reads CSV and populates the array
-    unitsTimes = []
-    for row in csv.reader(fileInput, delimiter=';'):
-        row_out = []
-        for field in row:
-            row_out.append(float(field))
-        unitsTimes.append(row_out)
+    if surfaces[8] > 0:
+        # We have water body
+        if units_counts[8] > 0:
+            # We have at least one diver
+            units_areas[8] = surfaces[8]
+            units_areas_alternatives[8] = surfaces[8]
+            units_times[8] = int(math.ceil((units_areas[8] / areas_speed['diver'][8]) / float(units_counts[8])))
 
-    units_areas = []
-    if units_counts[5] > 0:
-        # We have a drone
-        units_areas.append(int(math.ceil(surfaces[2] + surfaces[3] + surfaces[4] + surfaces[7]))) # handlers
-        units_areas.append(int(math.ceil(surfaces[5] + surfaces[6] + surfaces[9]))) # phalanx
-        units_areas.append(0) # No terrain_vehicles yet
-        units_areas.append(0) # No road_vehicles yet
-        units_areas.append(0) # No horses yet
-        units_areas.append(int(math.ceil(surfaces[0] + surfaces[1]))) # Drones
-        units_areas.append(0) # No Helicopters yet
-        units_areas.append(0) # No boats
-        units_areas.append(int(math.ceil(surfaces[8]))) # Divers
-        units_areas.append(0) # No other
-    else:
-        # We do not have a drone
-        units_areas.append(int(math.ceil(surfaces[0] + surfaces[1] + surfaces[2] + surfaces[3] + surfaces[4] + surfaces[7]))) # handlers
-        units_areas.append(int(math.ceil(surfaces[5] + surfaces[6] + surfaces[9]))) # phalanx
-        units_areas.append(0) # No terrain_vehicles yet
-        units_areas.append(0) # No road_vehicles yet
-        units_areas.append(0) # No horses yet
-        units_areas.append(0) # Drones
-        units_areas.append(0) # No Helicopters yet
-        units_areas.append(0) # No boats
-        units_areas.append(int(math.ceil(surfaces[8]))) # Divers
-        units_areas.append(0) # No other
+    surfaces_for_pedestrian = surfaces[5] + surfaces[6] + surfaces[7] + surfaces[9]
+    if surfaces_for_pedestrian > 0:
+        # We have areas where only pedestrians should enter
+        if units_counts[1] > 0:
+            units_areas[1] = surfaces_for_pedestrian
+            units_areas_alternatives[1] = surfaces_for_pedestrian
+            units_times[1] = int(math.ceil((surfaces[5] / areas_speed['pedestrian'][5] + surfaces[6] / areas_speed['pedestrian'][6] + surfaces[7] / areas_speed['pedestrian'][7] + surfaces[9] / areas_speed['pedestrian'][9]) / float(units_counts[1])))
 
-    units_times = []
-    # handlers
-    if units_counts[0] > 0:
-        if units_counts[5] > 0:
-            # We have a drone
-            P3_P5_KPT = float(surfaces[2]) / fixUt(unitsTimes[2][0]) + float(surfaces[4]) / fixUt(unitsTimes[4][0])
-            P4_P8_KPT = float(surfaces[3]) / fixUt(unitsTimes[3][0]) + float(surfaces[7]) / fixUt(unitsTimes[7][0])
-            units_times.append(int(math.ceil((P3_P5_KPT + P4_P8_KPT) / float(units_counts[0]))))
+    if surfaces[0] > 0:
+        # We have areas nice for drone and horses
+        if units_counts[4] > 0 and units_counts[5] > 0:
+            # We have both drone and horses
+            if surfaces[0] > 10:
+                units_areas[4] = 10
+            if surfaces[0] > 30:
+                units_areas[5] = surfaces[0] - 10
+            else:
+                units_areas[4] = surfaces[0]
         else:
-            # We do not have a drone
-            P2_P3_P5_KPT = float(surfaces[1]) / fixUt(unitsTimes[1][0]) + float(surfaces[2]) / fixUt(unitsTimes[2][0]) + float(surfaces[4]) / fixUt(unitsTimes[4][0])
-            P1_P4_P8_KPT = float(surfaces[0]) / fixUt(unitsTimes[0][0]) + float(surfaces[3]) / fixUt(unitsTimes[3][0]) + float(surfaces[7]) / fixUt(unitsTimes[7][0])
-            units_times.append(int(math.ceil((P2_P3_P5_KPT + P1_P4_P8_KPT) / float(units_counts[0]))))
-    else:
-        units_times.append(-99)
+            if units_counts[4] > 0:
+                # We have only horses
+                units_areas[4] = surfaces[0]
+            if units_counts[5] > 0:
+                # We have only drones
+                units_areas[5] = surfaces[0]
+        units_areas_alternatives[4] = units_areas[4]
+        if units_counts[4] > 0:
+            units_times[4] = int(math.ceil((units_areas[4] / areas_speed['horse_rider'][0]) / float(units_counts[4])))
+        units_areas_alternatives[5] = units_areas[5]
+        if units_counts[5] > 0:
+            units_times[5] = int(math.ceil((units_areas[5] / areas_speed['dron'][0]) / float(units_counts[5])))
 
-    # pedestrians
-    if units_counts[1] > 0:
-        P6_P7_P10_PT = float(surfaces[5]) / fixUt(unitsTimes[5][1]) + float(surfaces[6]) / fixUt(unitsTimes[6][1]) + float(surfaces[9]) / fixUt(unitsTimes[9][1])
-        units_times.append(int(math.ceil(P6_P7_P10_PT / float(units_counts[1]))))
-    else:
-        units_times.append(-99)
+    surfaces_for_handlers = surfaces[1] + surfaces[2] + surfaces[3] + surfaces[4]
+    if surfaces_for_handlers > 0:
+        # We have areas where the handlers are the most efficient
+        if units_counts[0] > 0:
+            units_areas[0] = surfaces_for_handlers
+            units_areas_alternatives[0] = surfaces_for_pedestrian
+            units_times[0] = int(math.ceil((surfaces[0] / areas_speed['handler'][0] + surfaces[2] / areas_speed['handler'][2] + surfaces[3] / areas_speed['handler'][3] + surfaces[4] / areas_speed['handler'][4]) / float(units_counts[0])))
 
-    units_times.append(-99) # No terrain_vehicles yet
-    units_times.append(-99) # No road_vehicles yet
-    units_times.append(-99) # No horse_riders
-
-    # Drone
-    if units_counts[5] > 0:
-        P1_P2_APT = float(surfaces[0]) / fixUt(unitsTimes[0][5]) + float(surfaces[1]) / fixUt(unitsTimes[1][5])
-        units_times.append(int(math.ceil(P1_P2_APT / float(units_counts[5]))))
-    else:
-        units_times.append(-99)
-
-    units_times.append(-99) # No helicopters
-    units_times.append(-99) # No boats
-
-    # Diver
-    if units_counts[8] > 0:
-        P9_VPT = float(surfaces[8]) / fixUt(unitsTimes[8][8])
-        units_times.append(int(math.ceil(P9_VPT / float(units_counts[8]))))
-    else:
-        units_times.append(-99)
-
-    units_times.append(-99) # No other yet
-
-    # Second variant
-    # drone for P1, P2 if is available else phalanx for P1, P2
-    # phalanx for P3, P4, P5, P6, P7, P8, P10
-    # diver for P9
-
-    units_areas_alternatives = []
-    if units_counts[5] > 0:
-        # We have a drone
-        units_areas_alternatives.append(0) # handlers
-        units_areas_alternatives.append(int(math.ceil(surfaces[2] + surfaces[3] + surfaces[4] + surfaces[5] + surfaces[6] + surfaces[7] + surfaces[9]))) # phalanx
-        units_areas_alternatives.append(0) # No terrain_vehicles
-        units_areas_alternatives.append(0) # No road_vehicles
-        units_areas_alternatives.append(0) # No horse_riders
-        units_areas_alternatives.append(int(math.ceil(surfaces[0] + surfaces[1]))) # Drones
-        units_areas_alternatives.append(0) # No helicopters
-        units_areas_alternatives.append(0) # No boats
-        units_areas_alternatives.append(int(math.ceil(surfaces[8]))) # Divers
-        units_areas_alternatives.append(0) # No other
-    else:
-        # We do not have a drone
-        units_areas_alternatives.append(0) # handlers
-        units_areas_alternatives.append(int(math.ceil(surfaces[0] + surfaces[1] + surfaces[2] + surfaces[3] + surfaces[4] + surfaces[5] + surfaces[6] + surfaces[7] + surfaces[9]))) # phalanx
-        units_areas_alternatives.append(0) # No terrain_vehicles
-        units_areas_alternatives.append(0) # No road_vehicles
-        units_areas_alternatives.append(0) # No horse_riders
-        units_areas_alternatives.append(0) # Drones
-        units_areas_alternatives.append(0) # No helicopters
-        units_areas_alternatives.append(0) # No boats
-        units_areas_alternatives.append(int(math.ceil(surfaces[8]))) # Divers
-        units_areas_alternatives.append(0) # No other
-
+    # Units necessary based on max time
     maxtime = 3
     if os.path.isfile(os.path.join(settingsPath, 'grass', 'maxtime.txt')):
         try:
@@ -955,40 +929,62 @@ def get_units_report(ID, surfaces):
     if maxtime <= 0:
         maxtime = 3
 
-    units_necessary = []
+    if surfaces[8] > 0:
+        # We have water body
+        units_necessary[8] = int(math.ceil(surfaces[8] / areas_speed['diver'][8] / float(maxtime)))
 
-    P3_P5_KPT = float(surfaces[2]) / fixUt(unitsTimes[2][0]) + float(surfaces[4]) / fixUt(unitsTimes[4][0])
-    P4_P8_KPT = float(surfaces[3]) / fixUt(unitsTimes[3][0]) + float(surfaces[7]) / fixUt(unitsTimes[7][0])
-    units_necessary.append(int(math.ceil((P3_P5_KPT + P4_P8_KPT) / float(maxtime)))) # handlers
+    # Pedestrians
+    if surfaces[5] > 0:
+        units_necessary[1] += int(math.ceil(surfaces[5] / areas_speed['pedestrian'][5] / float(maxtime)))
 
-    P6_P7_P10_PT = float(surfaces[5]) / fixUt(unitsTimes[5][1]) + float(surfaces[6]) / fixUt(unitsTimes[6][1]) + float(surfaces[9]) / fixUt(unitsTimes[9][1])
-    units_necessary.append(int(math.ceil(P6_P7_P10_PT / float(maxtime)))) # pedestrians
+    if surfaces[6] > 0:
+        units_necessary[1] += int(math.ceil(surfaces[6] / areas_speed['pedestrian'][6] / float(maxtime)))
 
-    units_necessary.append(0) # No terrain_vehicles yet
-    units_necessary.append(0) # No road_vehicles yet
-    units_necessary.append(0) # No horse_riders yet
+    if surfaces[7] > 0:
+        units_necessary[1] += int(math.ceil(surfaces[7] / areas_speed['pedestrian'][7] / float(maxtime)))
 
-    P1_P2_APT = float(surfaces[0]) / fixUt(unitsTimes[0][5]) + float(surfaces[1]) / fixUt(unitsTimes[1][5])
-    units_necessary.append(int(math.ceil(P1_P2_APT / float(maxtime)))) # drones
+    if surfaces[9] > 0:
+        units_necessary[1] += int(math.ceil(surfaces[9] / areas_speed['pedestrian'][9] / float(maxtime)))
 
-    units_necessary.append(0) # No helicopter yet
-    units_necessary.append(0) # No boat yet
+    # Horsers
+    if surfaces[0] > 0:
+        units_necessary[4] = 2
 
-    P9_VPT = float(surfaces[8]) / fixUt(unitsTimes[8][8])
-    units_necessary.append(int(math.ceil(P9_VPT / float(maxtime))))
+    # Drones
+    if surfaces[0] > 30:
+        units_necessary[5] = int(math.ceil(surfaces[0] / areas_speed['dron'][0] / float(maxtime)))
 
-    units_necessary.append(0) # No other yet
+    # Handlers
+    if surfaces[1] > 0:
+        units_necessary[0] += int(math.ceil(surfaces[1] / areas_speed['handler'][1] / float(maxtime)))
+
+    if surfaces[2] > 0:
+        units_necessary[0] += int(math.ceil(surfaces[2] / areas_speed['handler'][2] / float(maxtime)))
+
+    if surfaces[3] > 0:
+        units_necessary[0] += int(math.ceil(surfaces[3] / areas_speed['handler'][3] / float(maxtime)))
+
+    if surfaces[4] > 0:
+        units_necessary[0] += int(math.ceil(surfaces[4] / areas_speed['handler'][4] / float(maxtime)))
+
+    surfaces_int = [int(math.ceil(v)) for v in surfaces]
+    units_areas_int = [int(math.ceil(v)) for v in units_areas]
+    units_areas_alternatives_int = [int(math.ceil(v)) for v in units_areas_alternatives]
+    units_times_int = [int(math.ceil(v)) for v in units_times]
+    units_necessary_int = [int(math.ceil(v)) for v in units_necessary]
 
     report = {
         "id": ID,
         "report": {
             "surfaces": surfaces_int,
-            "units_areas": units_areas,
-            "units_areas_alternatives": units_areas_alternatives,
-            "units_times": units_times,
-            "units_necessary": units_necessary
+            "units_areas": units_areas_int,
+            "units_areas_alternatives": units_areas_alternatives_int,
+            "units_times": units_times_int,
+            "units_necessary": units_necessary_int
         }
     }
+
+    print(report)
 
     return report
 

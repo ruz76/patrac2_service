@@ -774,6 +774,51 @@ paths:
                 example:
                   errorMessage: "Illegal inputs."
 
+  /status:
+    get:
+      summary: Kontrola stavu aplikace
+      description: |
+        Ověří dostupnost všech datových souborů (shapefile) potřebných pro pátrání.
+        Kontroluje soubory pro všechny kraje a celou ČR.
+      operationId: status
+      tags:
+        - System
+      responses:
+        '200':
+          description: Všechny datové soubory jsou dostupné
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "All files available"
+        '400':
+          description: Některé datové soubory nejsou dostupné nebo je nelze otevřít
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                single_file_missing:
+                  summary: Chybí jeden soubor
+                  value:
+                    status: error
+                    message: "Status check failed. Files not available: [{'file': '/data/cr/vusc.shp', 'error': 'No such file or directory'}]"
+                multiple_files_missing:
+                  summary: Chybí více souborů
+                  value:
+                    status: error
+                    message: "Status check failed. Files not available: [{'file': '/data/cr/vusc.shp', 'error': 'No such file or directory'}, {'file': '/data/kraje/jc/vektor/ZABAGED/sectors.shp', 'error': 'No such file or directory'}]"
+
 components:
   schemas:
     Report:
