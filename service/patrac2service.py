@@ -534,6 +534,45 @@ def get_percentage_rings():
     else:
         return get_400_response('Illegal inputs.')
 
+@app.route('/status', methods=['GET'])
+def status():
+    DATA_FILES = [
+        os.path.join(dataPath, 'cr', 'vusc.shp'),
+        os.path.join(dataPath, 'kraje', 'jc',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'jm',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'ka',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'kh',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'lb',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'ms',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'ol',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'pa',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'pl',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'st',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'us',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'vy',  'vektor', 'ZABAGED', 'sectors.shp'),
+        os.path.join(dataPath, 'kraje', 'zl',  'vektor', 'ZABAGED', 'sectors.shp'),
+    ]
+    errors = []
+
+    for file_path in DATA_FILES:
+        try:
+            with fiona.open(file_path, 'r', encoding='utf-8') as f:
+                for feature in f:
+                    break  # stačí načíst první feature
+        except Exception as e:
+            errors.append({
+                'file': file_path,
+                'error': str(e)
+            })
+
+    if errors:
+        return get_400_response(f'Status check failed. Files not available: {errors}')
+
+    resp = Response(response=json.dumps({"message": "All files available"}),
+                    status=200,
+                    mimetype="application/json")
+
+    return resp
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
