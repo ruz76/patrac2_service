@@ -503,13 +503,18 @@ def convertToGeoJSON(id, search_id):
             geom_transformed = transform(project, shape(sector["geometry"]))
             props = sector['properties']
 
+            # If the shapefile contains obtiznost filed we export the value otherwise we set -1 (Unknown)
+            obtiznost = -1
+            if "obtiznost" in props:
+                obtiznost = props["obtiznost"]
+
             feature = {
                 "geometry": mapping(geom_transformed),
-                "properties": {"id": props["id"], "label": props["label"], "typ": props["typ"], "area_ha": props["area_ha"]}
+                "properties": {"id": props["id"], "label": props["label"], "typ": props["typ"], "area_ha": props["area_ha"], "obtiznost": obtiznost}
             }
             features.append(feature)
 
-    schema1 = {"geometry": "Unknown", "properties": [("id", "str"), ("label", "str"), ("typ", "str"), ("area_ha", "float")]}
+    schema1 = {"geometry": "Unknown", "properties": [("id", "str"), ("label", "str"), ("typ", "str"), ("area_ha", "float"), ("obtiznost", "int")]}
 
     # attempt to overwrite it with a valid file
     with fiona.open(os.path.join(dataPath, id + "_sectors.geojson"), "w", driver="GeoJSON", schema=schema1) as dst:
